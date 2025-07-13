@@ -45,5 +45,5 @@ precision.
 [cm]: Sources/DSPHeaders/include/DSPHeaders/ConstMath.hpp
 [ct]: https://github.com/lakshayg/compile_time
 [gcem]: https://github.com/kthohr/gcem
-[rf]: blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L376
-[rr]: blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L312
+[rf]: https://github.com/bradhowes/DSPHeaders/blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L376
+[rr]: https://github.com/bradhowes/DSPHeaders/blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L312
