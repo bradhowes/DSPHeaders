@@ -1,0 +1,11 @@
+version: 1
+builder:
+  configs:
+  - platform: ios
+    scheme: AUv3-Support-iOS
+  - platform: macos
+    scheme: AUv3-Support-macOS
+  - platform: macosSpm
+    scheme: AUv3-Support-macOS
+  - platform: macosXcodeBuild
+    scheme: AUv3-Support-macOS
