@@ -13,5 +13,11 @@ module DSPHeaders {
   header "DSPHeaders/PhaseShifter.hpp"
   header "DSPHeaders/TypeErasedKernel.hpp"
   header "DSPHeaders/Types.hpp"
+  header "DSPHeaders/Parameters/Base.hpp"
+  header "DSPHeaders/Parameters/Float.hpp"
+  header "DSPHeaders/Parameters/Integral.hpp"
+  header "DSPHeaders/Parameters/Milliseconds.hpp"
+  header "DSPHeaders/Parameters/Percentage.hpp"
+  header "DSPHeaders/Parameters/Transformer.hpp"
   export *
 }
