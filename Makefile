@@ -7,7 +7,7 @@ default: report
 test-iOS:
 	rm -rf "$(PWD)/.DerivedData-iOS"
 	USE_UNSAFE_FLAGS="1" xcodebuild test \
-		-scheme AUv3-Support-iOS \
+		-scheme DSPHeaders \
 		-derivedDataPath "$(PWD)/.DerivedData-iOS" \
 		-destination platform="$(PLATFORM_IOS)" \
 		-enableCodeCoverage YES
@@ -25,7 +25,7 @@ percentage-iOS: coverage-iOS
 test-macOS:
 	rm -rf "$(PWD)/.DerivedData-macOS"
 	USE_UNSAFE_FLAGS="1" xcodebuild test \
-		-scheme AUv3-Support-macOS \
+		-scheme DSPHeaders \
 		-derivedDataPath "$(PWD)/.DerivedData-macOS" \
 		-destination platform="$(PLATFORM_MACOS)" \
 		-enableCodeCoverage YES
