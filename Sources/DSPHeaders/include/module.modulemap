@@ -1,0 +1,17 @@
+module DSPHeaders {
+  header "DSPHeaders/Biquad.hpp"
+  header "DSPHeaders/BusBufferFacet.hpp"
+  header "DSPHeaders/BusSampleBuffer.hpp"
+  header "DSPHeaders/Concepts.hpp"
+  header "DSPHeaders/ConstMath.hpp"
+  header "DSPHeaders/DelayBuffer.hpp"
+  header "DSPHeaders/DSP.hpp"
+  header "DSPHeaders/EventProcessor.hpp"
+  header "DSPHeaders/IntrusiveReferenceCounted.hpp"
+  header "DSPHeaders/LFO.hpp"
+  header "DSPHeaders/PhaseIncrement.hpp"
+  header "DSPHeaders/PhaseShifter.hpp"
+  header "DSPHeaders/TypeErasedKernel.hpp"
+  header "DSPHeaders/Types.hpp"
+  export *
+}
