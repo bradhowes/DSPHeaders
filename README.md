@@ -5,9 +5,11 @@
 
 # Overview
 
-Swift package containing useful C++ v17 headers for AUv3 app extensions and digital signal-processing (DSP) in general.
+Swift package containing useful C++ v23 headers for AUv3 app extensions and digital signal-processing (DSP) in general.
 These were written specifically for use in an audio unit render thread, so there are no memory allocations done once a
-render thread is started.
+render thread is started. Although it is is all C++, it does have instrumentation to support Swift C++ interoperability.
+The [demo application][da] of the [auv-support][auv3-support] package illustrates how to use the headers to create an
+AUv3 DSP [kernel][kernel] (the kernel just attenuates the input signal -- basically a volume control knob).
 
 The [EventProcessor][ep] template in the DSPHeaders product serves as the basis for all AUv3 audio rendering _kernels_.
 The [EventProcessor::renderFrames][rf] method is the sole place that invokes `doRendering`, and it properly handles
@@ -46,3 +48,5 @@ precision.
 [gcem]: https://github.com/kthohr/gcem
 [rf]: https://github.com/bradhowes/DSPHeaders/blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L376
 [rr]: https://github.com/bradhowes/DSPHeaders/blob/788dc7833f2c9c5fb74b16e2d543c0df560b8cda/Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp#L312
+[da]: https://github.com/bradhowes/auv3-support/AUv3Demo
+[kernel]: https://github.com/bradhowes/auv3-support/blob/main/AUv3Demo/AUv3DemoExtension/Kernel/AUv3Demo_Kernel.hpp
