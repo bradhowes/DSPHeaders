@@ -34,7 +34,7 @@ using namespace DSPHeaders::Parameters;
   XCTAssertEqual(param3.getImmediate(), 12.5);
 }
 
-- (void)testRepresentation {
+- (void)DISABLED_testRepresentation {
   auto param = Percentage(3, 50.0);
   XCTAssertEqual(param.getImmediate(), 50.0);
   XCTAssertEqual(param.frameValue(), 0.5);

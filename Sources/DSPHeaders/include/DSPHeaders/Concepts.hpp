@@ -75,7 +75,7 @@ concept HasGetPendingParameterValue = requires(T a, AUParameterAddress address)
 template<typename T>
 concept IsViableKernelType = requires(T a, const AUParameterEvent& param, const AUMIDIEvent& midi, BusBuffers bb)
 {
-  { a.doRendering(NSInteger(1), bb, bb, AUAudioFrameCount(1) ) } -> std::convertible_to<void>;
+  { a.doRendering(bb, bb, AUAudioFrameCount(1) ) } -> std::convertible_to<void>;
 };
 
 }

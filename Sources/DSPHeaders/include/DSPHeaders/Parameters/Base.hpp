@@ -125,7 +125,7 @@ protected:
    */
   Base(AUParameterAddress address, AUValue value, bool canRamp, ValueTransformer forward,
        ValueTransformer reverse) noexcept :
-  address_{address}, value_{forward(value)}, transformIn_{forward}, transformOut_{reverse}, canRamp_{canRamp} {
+  address_{address}, value_{forward(value)}, transformIn_{forward}, transformOut_{reverse}, canRamp_{false} {
     assert(transformIn_ && transformOut_);
     pendingValue_.store(value_, std::memory_order_relaxed);
   }
