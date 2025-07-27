@@ -38,7 +38,7 @@ coverage-macOS: test-macOS
 	cat coverage_macOS.txt
 
 percentage-macOS: coverage-macOS
-	awk '/ DSPHeadersG / { print $$4 }' coverage_macOS.txt > percentage_macOS.txt
+	awk '/ DSPHeaders / { print $$4 }' coverage_macOS.txt > percentage_macOS.txt
 	echo "macOS Coverage Pct:"
 	cat percentage_macOS.txt
 
