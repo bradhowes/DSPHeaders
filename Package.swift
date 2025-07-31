@@ -131,6 +131,7 @@ let package = Package(
     .target(
       name: "DSPHeaders",
       exclude: ["README.md"],
+      publicHeadersPath: "include",
       cxxSettings: cxxSettings,
       swiftSettings: [.define("APPLICATION_EXTENSION_API_ONLY"), .interoperabilityMode(.Cxx)]
     ),
