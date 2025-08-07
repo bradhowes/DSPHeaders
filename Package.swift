@@ -123,7 +123,7 @@ NSLog("--- compiling with UNSAFE C++ flags: %d", useUnsafeFlags)
 
 let package = Package(
   name: "DSPHeaders",
-  platforms: [.iOS(.v16), .macOS(.v14)],
+  platforms: [.iOS(.v14), .macOS(.v14)],
   products: [
     .library(name: "DSPHeaders", targets: ["DSPHeaders"]),
   ],
