@@ -1,6 +1,8 @@
-// Copyright © 2024 Brad Howes. All rights reserved.
+// Copyright © 2024-2025 Brad Howes. All rights reserved.
 
 #import <concepts>
+#import <type_traits>
+
 #import <AVFoundation/AVFoundation.h>
 
 #import "DSPHeaders/BusBuffers.hpp"
