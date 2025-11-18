@@ -25,7 +25,7 @@ on the derived class being given as the template parameter. This setup is known 
 pattern" (CRTP)][crtp]. The template also uses modern C++ traits techniques to detect if methods are present in your
 class, and the compiler only generates code to call them when they are available.
 
-This collection was originally part of my [AUv3Support][auv3support] package, but with that repo being deprecated in
+This collection was originally part of my [AUv3Support][AUv3Support] package, but with that repo being deprecated in
 favor of the more modern [auv-support][auv3-support] package, it is now on its own.
 
 # Credits
@@ -38,6 +38,7 @@ started off with [compile_time][ct] but I lifted the natural log function from [
 compile-time methods are *only* for a very limited set of use-cases, all of which are not that demanding in terms of
 precision.
 
+[AUv3Support]: https://github.com/bradhowes/AUv3Support
 [auv3-support]: https://github.com/bradhowes/auv3-support
 [ep]: Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp
 [crtp]: https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern
