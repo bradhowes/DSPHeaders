@@ -28,6 +28,11 @@ class, and the compiler only generates code to call them when they are available
 This collection was originally part of my [AUv3Support][AUv3Support] package, but with that repo being deprecated in
 favor of the more modern [auv-support][auv3-support] package, it is now on its own.
 
+# Usage
+
+Add `.package(url: "https://github.com/bradhowes/DSPHeaders", from: "1.1.0")` to your Swift package dependencies, or
+add the URL and version via Xcode `Package Dependencies` tab in the PROJECT editor of your Xcode project.
+
 # Credits
 
 All of the code has been written by myself over the course of several years working on AUv3 app extensions. There are a
