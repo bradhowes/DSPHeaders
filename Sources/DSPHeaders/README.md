@@ -19,9 +19,3 @@ class that takes a 'kernel' type which defines the actual operations to perform 
 Originally, this was a C++ headers-only package, but now there is a `DSPHeaders.mm` file that contains various lookup
 table generators that are run at compile time to fill the coefficient lookup tables used by the cubic 4-order
 interpolation routine (4 value generators for the 4 coefficients).
-
-# Usage
-
-Add `.product(name: "AUv3-DSP-Headers", package: "AUv3Support", condition: .none)` to the list of
-dependencies in your C++ target and then `#include` whatever header you want. Note that adding the dependency will
-affect the search path used for finding include files, so you just need to use the file name without any path component.
