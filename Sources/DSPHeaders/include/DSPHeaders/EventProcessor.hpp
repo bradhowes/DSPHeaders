@@ -77,11 +77,12 @@ public:
    @param busCount the number of busses being used in the audio processing flow
    @param format the sample format to expect
    @param maxFramesToRender the maximum number of frames to expect on input
+   @param treeBasedRampDuration the number of frames to ramp a parameter value change
    */
   void setRenderingFormat(NSInteger busCount, AVAudioFormat* _Nonnull format,
-                          AUAudioFrameCount maxFramesToRender) noexcept {
+                          AUAudioFrameCount maxFramesToRender, AUAudioFrameCount treeBasedRampDuration = 16) noexcept {
     sampleRate_ = format.sampleRate;
-    treeBasedRampDuration_ = AUAudioFrameCount(floor(0.02 * sampleRate_));
+    treeBasedRampDuration_ = treeBasedRampDuration;
 
     auto channelCount{format.channelCount};
 
@@ -197,7 +198,7 @@ public:
     }
 
     // Apply any paramter changes posted by the UI
-    checkForTreeBasedParameterChanges();
+    checkForParameterValueChanges();
     render(outputBusNumber, timestamp, frameCount, realtimeEventListHead);
 
     return noErr;
@@ -254,16 +255,22 @@ protected:
 
   /**
    Visit registered parameters and see if they have a change pending from the AUParameterTree.
+
+   @returns true if there is was a new change
    */
-  void checkForTreeBasedParameterChanges() noexcept {
+  bool checkForParameterValueChanges() noexcept {
     auto changed = false;
     for (auto param : parameters_) {
-      changed |= param.second.get().checkForPendingChange(treeBasedRampDuration_);
+      changed |= param.second.get().checkForValueChange(treeBasedRampDuration_);
     }
 
-    if (changed && treeBasedRampDuration_ > rampRemaining_) {
-      rampRemaining_ = treeBasedRampDuration_;
+    if (changed) {
+      rampRemaining_ = std::max(treeBasedRampDuration_ - 1, rampRemaining_);
+    } else if (rampRemaining_ > 0) {
+      rampRemaining_ -= 1;
     }
+
+    return changed;
   }
 
   os_log_t _Nonnull log_;
@@ -294,7 +301,7 @@ private:
   AUValue getImmediateParameterValue(AUParameterAddress address) const noexcept {
     if constexpr (HasGetImmediateParameterValue<KernelType>) return derived_.doGetImmediateParameterValue(address);
     auto pos = parameters_.find(address);
-    return pos != parameters_.end() ? pos->second.get().getPending() : 0.0;
+    return pos != parameters_.end() ? pos->second.get().getImmediate() : 0.0;
   }
 
   void renderingStateChanged() noexcept {
@@ -306,7 +313,6 @@ private:
   void render(NSInteger outputBusNumber, AudioTimeStamp const* _Nonnull timestamp, AUAudioFrameCount frameCount,
               AURenderEvent const* _Nullable events) noexcept {
     auto& outputFacet{outputFacets_[size_t(outputBusNumber)]};
-    auto zero = AUEventSampleTime(0);
     auto now = AUEventSampleTime(timestamp->mSampleTime);
     auto framesRemaining = frameCount;
 
@@ -318,11 +324,15 @@ private:
         return;
       }
 
-      auto framesThisSegment = AUAudioFrameCount(events->head.eventSampleTime < now ? 0 : events->head.eventSampleTime - now);
-      if (framesThisSegment > 0) [[likely]] {
-        makeFrames(outputFacet, framesThisSegment, frameCount - framesRemaining);
-        framesRemaining -= framesThisSegment;
-        now += AUEventSampleTime(framesThisSegment);
+      // See if there are frames to process before the next event. Here "time" is measured in samples, so we just need
+      // to change type to convert between the two.
+      auto eventSampleTime = events->head.eventSampleTime;
+      auto framesBefore = AUAudioFrameCount(eventSampleTime < now ? 0 : eventSampleTime - now);
+
+      if (framesBefore > 0) [[likely]] {
+        makeFrames(outputFacet, framesBefore, frameCount - framesRemaining);
+        framesRemaining -= framesBefore;
+        now += AUEventSampleTime(framesBefore);
       }
 
       // Process the events for the current time
@@ -332,7 +342,7 @@ private:
 
   void processEventParameterChange(const AUParameterEvent& event, AUAudioFrameCount duration) noexcept {
     if (setImmediateParameterValue(event.parameterAddress, event.value, duration)) {
-      rampRemaining_ = std::max(duration, rampRemaining_);
+      rampRemaining_ = std::max(duration - 1, rampRemaining_);
     }
   }
 
@@ -347,8 +357,8 @@ private:
           break;
 
         case AURenderEventParameterRamp:
-          os_log_info(log_, "AURenderEventParameterRamp - %llu %f", event->parameter.parameterAddress,
-                      event->parameter.value);
+          os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress,
+                      event->parameter.value, event->parameter.rampDurationSampleFrames);
           processEventParameterChange(event->parameter, event->parameter.rampDurationSampleFrames);
           break;
 
@@ -387,18 +397,6 @@ private:
   }
 
   inline void renderedFrames(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount) {
-    isRamping() ? rampedRender(outputFacet, frameCount) : unrampedRender(outputFacet, frameCount);
-  }
-
-  void rampedRender(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount) {
-    auto rampCount = std::min(rampRemaining_, frameCount);
-    rampRemaining_ -= rampCount;
-    frameCount -= rampCount;
-    while (rampCount--) derived_.doRendering(inputFacet_.busBuffers(), outputFacet.busBuffers(), 1);
-    if (frameCount) unrampedRender(outputFacet, frameCount);
-  }
-
-  inline void unrampedRender(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount) {
     derived_.doRendering(inputFacet_.busBuffers(), outputFacet.busBuffers(), frameCount);
   }
 

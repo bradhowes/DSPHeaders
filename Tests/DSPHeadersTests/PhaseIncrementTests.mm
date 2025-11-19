@@ -30,7 +30,7 @@ using namespace DSPHeaders;
   SamplesEqual(phi.value(), 0.25);
 }
 
-- (void)DISABLED_testRamping {
+- (void)testRamping {
   AUValue sampleRate{4.0};
   Parameters::Float freq{1, 1.0};
 
@@ -39,7 +39,9 @@ using namespace DSPHeaders;
 
   freq.setImmediate(2.0, 2);
   SamplesEqual(phi.value(), 0.375);
+  freq.checkForValueChange(2);
   SamplesEqual(phi.value(), 0.5);
+  freq.checkForValueChange(2);
   SamplesEqual(phi.value(), 0.5);
 }
 
