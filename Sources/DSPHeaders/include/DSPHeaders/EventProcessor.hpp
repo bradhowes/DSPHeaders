@@ -48,9 +48,19 @@ public:
 
   /**
    Construct new instance.
+
+   @param name the name to use for logging
    */
   EventProcessor(std::string name) noexcept
   : log_{os_log_create(name.c_str(), "Kernel")}, derived_{static_cast<KernelType&>(*this)} {}
+
+  /**
+   Construct new instance.
+
+   @param log the logger to use for logging
+   */
+  EventProcessor(os_log_t _Nonnull log) noexcept
+  : log_{log}, derived_{static_cast<KernelType&>(*this)} {}
 
   /**
    Set the bypass mode.
@@ -156,7 +166,7 @@ public:
    @param outputBusNumber the bus to render (normally only 0)
    @param output the buffer to hold the rendered samples
    @param realtimeEventListHead pointer to the first AURenderEvent (may be null)
-   @param pullInputBlock the closure to call to obtain upstream samples
+   @param pullInputBlock the closure to call to obtain upstream samples (should be NULL for instruments)
    */
   AUAudioUnitStatus processAndRender(const AudioTimeStamp* _Nonnull timestamp,
                                      UInt32 frameCount,
@@ -171,6 +181,7 @@ public:
     // use it for an output buffer if necessary.
     auto& outputBus{outputBusses_[outputBusIndex]};
     if (frameCount > outputBus.capacity()) [[unlikely]] {
+      os_log_info(log_, "processAndRender END - too many frames: %d > %d", frameCount, outputBus.capacity());
       return kAudioUnitErr_TooManyFramesToProcess;
     }
 
@@ -178,7 +189,7 @@ public:
     outputFacets_[outputBusIndex].assignBufferList(output, outputBus.mutableAudioBufferList());
     outputFacets_[outputBusIndex].setFrameCount(frameCount);
 
-    if (pullInputBlock) [[likely]] {
+    if (pullInputBlock != nullptr) {
 
       // Pull input samples from upstream. If the output buffer we are given has no storage assigned to it, then we
       // will use our own and perform in-place rendering of the samples. This is detected and handled in the
@@ -189,6 +200,7 @@ public:
       AudioUnitRenderActionFlags actionFlags = 0;
       auto status = inputFacet_.pullInput(&actionFlags, timestamp, frameCount, outputBusNumber, pullInputBlock);
       if (status != noErr) [[unlikely]] {
+        os_log_info(log_, "processAndRender END - invalid response from pullInputBlock: %d", status);
         return status;
       }
     } else {
@@ -218,6 +230,7 @@ protected:
    @param rendering if true the host is "transport" is moving and we are expected to render samples.
    */
   void setRendering(bool rendering) noexcept {
+    os_log_info(log_, "setRendering - %d", rendering);
     if (rendering != rendering_) [[likely]] {
       rendering_.store(rendering, std::memory_order_relaxed);
       renderingStateChanged();
@@ -346,8 +359,8 @@ private:
     }
   }
 
-  AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now,
-                                                    AURenderEvent const* _Nonnull event) noexcept {
+  AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now, AURenderEvent const* _Nonnull event) noexcept {
+    os_log_info(log_, "processingEventsUntil BEGIN");
     while (event != nullptr && event->head.eventSampleTime <= now) {
       switch (event->head.eventType) {
         case AURenderEventParameter:
@@ -364,10 +377,17 @@ private:
 
         case AURenderEventMIDI:
         case AURenderEventMIDISysEx:
-          if constexpr (HasMIDIEventV1<KernelType>) derived_.doMIDIEvent(event->MIDI);
+          os_log_info(log_, "processingEventsUntil - MIDI v1 events");
+          if constexpr (HasMIDIEventV1<KernelType>) {
+            os_log_info(log_, "processingEventsUntil - invoking doMIDIEvent");
+            derived_.doMIDIEvent(event->MIDI);
+          } else {
+            os_log_debug(log_, "processingEventsUntil - ignoring doMIDIEvent");
+          }
           break;
 
         case AURenderEventMIDIEventList:
+          os_log_info(log_, "processingEventsUntil - MIDI v2 events");
           // TODO: handle MIDI v2 packets
           break;
 
@@ -376,6 +396,7 @@ private:
       }
       event = event->head.next;
     }
+
     return event;
   }
 
