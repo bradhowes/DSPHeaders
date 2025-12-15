@@ -10,6 +10,7 @@
 #import <span>
 #import <vector>
 
+#import "DSPHeaders/Accelerated.hpp"
 #import "DSPHeaders/BusBuffers.hpp"
 
 namespace DSPHeaders {
@@ -167,9 +168,10 @@ struct BusBufferFacet {
    @param frameCount the number of frames to clear
    */
   void clear(AUAudioFrameCount frameCount) noexcept {
+    constexpr auto stride = vDSP_Stride(1);
+    auto length = vDSP_Length(frameCount);
     for (UInt32 channel = 0; channel < bufferList_->mNumberBuffers; ++channel) {
-      auto pos = getBufferPointer(channel, 0);
-      std::fill(pos, pos + frameCount, AUValue(0.0));
+      Accelerated<AUValue>::zeroProc(getBufferPointer(channel, 0), stride, length);
     }
   }
 

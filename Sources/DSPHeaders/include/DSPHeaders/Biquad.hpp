@@ -27,6 +27,10 @@ namespace DSPHeaders::Biquad {
 
  Note that in Pirkle there are 'c0' and 'd0' values that the book uses for mixing wet (c0) and dry (d0)
  values which are not found here.
+
+ Future work: look into using the Accelerate framework and its Biquad routines:
+   https://developer.apple.com/documentation/accelerate/biquadratic-iir-filters
+
  */
 template <typename ValueType = AUValue>
 struct Coefficients {

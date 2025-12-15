@@ -9,6 +9,8 @@
 
 #import <AudioToolbox/AudioToolbox.h>
 
+#import "DSPHeaders/Accelerated.hpp"
+
 namespace DSPHeaders {
 
 /**
@@ -55,9 +57,10 @@ public:
    @param frameCount number of frames to change
    */
   void clear(AUAudioFrameCount frameCount) noexcept {
+    constexpr auto stride = vDSP_Stride(1);
+    auto length = vDSP_Length(frameCount);
     for (UInt32 channel = 0; channel < buffers_.size(); ++channel) {
-      auto pos = buffers_[channel];
-      std::fill(pos, pos + frameCount, AUValue(0.0));
+      Accelerated<AUValue>::zeroProc(buffers_[channel], stride, length);
     }
   }
 
