@@ -122,7 +122,7 @@ AURenderPullInputBlock mockPullInput = ^(AudioUnitRenderActionFlags* actionFlags
   // Test without a pullInput routine
   AUAudioFrameCount frames = maxFrames;
   AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:maxFrames];
-  AudioBufferList *outputData = [buffer mutableAudioBufferList];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
   auto status = self.effect->processAndRender(&timestamp, frames, 0, outputData, nullptr, nullptr);
   XCTAssertEqual(status, 0);
   XCTAssertTrue(self.effect->frameCounts_.empty());

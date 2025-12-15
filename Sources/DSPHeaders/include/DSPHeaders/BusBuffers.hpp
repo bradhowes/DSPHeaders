@@ -50,6 +50,18 @@ public:
   bool isStereo() const noexcept { return buffers_.size() > 1; }
 
   /**
+   Set `frameCount` frames to zero (0.0).
+
+   @param frameCount number of frames to change
+   */
+  void clear(AUAudioFrameCount frameCount) noexcept {
+    for (UInt32 channel = 0; channel < buffers_.size(); ++channel) {
+      auto pos = buffers_[channel];
+      std::fill(pos, pos + frameCount, AUValue(0.0));
+    }
+  }
+
+  /**
    Add a sample to the existing frame of a mono collection.
 
    @param frame the frame to update

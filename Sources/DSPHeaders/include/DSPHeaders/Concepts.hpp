@@ -6,6 +6,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 #import "DSPHeaders/BusBuffers.hpp"
+#import "DSPHeaders/BusBufferFacet.hpp"
 
 namespace DSPHeaders {
 
@@ -31,22 +32,15 @@ concept RandomAccessContainer = requires(T v) { { v.at(0) } -> std::convertible_
 
 /// Concept definition for a Kernel class with an optional `doRenderingStateChanged` method.
 template<typename T>
-concept HasRenderingStateChangedT = requires(T a)
-{
-  { a.doRenderingStateChanged(false) } -> std::convertible_to<void>;
-};
+concept HasRenderingStateChangedT = requires(T a) { { a.doRenderingStateChanged(false) } -> std::convertible_to<void>; };
 
 /// Concept definition for a Kernel class with an optional `doMIDIEvent` method.
 template<typename T>
-concept HasMIDIEventV1 = requires(T a, const AUMIDIEvent& midi)
-{
-  { a.doMIDIEvent(midi) } -> std::convertible_to<void>;
-};
+concept HasMIDIEventV1 = requires(T a, const AUMIDIEvent& midi) { { a.doMIDIEvent(midi) } -> std::convertible_to<void>; };
 
 /// Concept definition for a Kernel class with an optional `doSetImmediateParameterValue` method.
 template<typename T>
-concept HasSetImmediateParameterValue = requires(T a, AUParameterAddress address, AUValue value,
-                                                 AUAudioFrameCount duration)
+concept HasSetImmediateParameterValue = requires(T a, AUParameterAddress address, AUValue value, AUAudioFrameCount duration)
 {
   { a.doSetImmediateParameterValue(address, value, duration) } -> std::convertible_to<bool>;
 };
@@ -72,12 +66,22 @@ concept HasGetPendingParameterValue = requires(T a, AUParameterAddress address)
   { a.doGetPendingParameterValue(address) } -> std::convertible_to<AUValue>;
 };
 
-/// Concept definition for a valid Kernel class, one that provides method definitions for the functions
-/// used by the EventProcessor template.
+/// Concept definition for a Kernel class that has the original `doRendering` method without the `outputBus` parameter
 template<typename T>
-concept IsViableKernelType = requires(T a, const AUParameterEvent& param, const AUMIDIEvent& midi, BusBuffers bb)
+concept HasDoRendering = requires(T a, BusBuffers bbs)
 {
-  { a.doRendering(bb, bb, AUAudioFrameCount(1) ) } -> std::convertible_to<void>;
+  { a.doRendering(bbs, bbs, AUAudioFrameCount(1) ) } -> std::convertible_to<void>;
 };
+
+/// Concept definition for a Kernel class that has the new `doRendering` method *with* the `outputBus` parameter.
+template<typename T>
+concept HasDoRenderingWithOutputBus = requires(T a, BusBuffers bbs)
+{
+  { a.doRendering(NSInteger(1), bbs, bbs, AUAudioFrameCount(1) ) } -> std::convertible_to<void>;
+};
+
+/// Concept definition for a valid Kernel class. Requires a `doRendering` method.
+template<typename T>
+concept IsViableKernelType = HasDoRendering<T> || HasDoRenderingWithOutputBus<T>;
 
 }

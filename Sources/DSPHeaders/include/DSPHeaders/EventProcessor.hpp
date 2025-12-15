@@ -32,7 +32,8 @@ namespace DSPHeaders {
  invoke at the appropriate times but without any virtual dispatching. The only one that is required is
  the `doRendering` method.
 
- - doRendering -- perform rendering of samples
+ - doRendering -- perform rendering of samples. There are two versions, one that provides the outputBus index and one that does
+ not.
  - doSetImmediateParameterValue [optional] -- set a parameter value from within the render loop. The default action
  is to invoke the parameter's setImmediate method.
  - doSetPendingParameterValue [optional] -- set a paramete value from outside render loop (AUParameterTree)
@@ -84,15 +85,17 @@ public:
   /**
    Update kernel and buffers to support the given format.
 
-   @param busCount the number of busses being used in the audio processing flow
+   @param busCount the number of busses being used in the audio processing flow. For multi-bus outputs, only the first one will
+   see MIDI and parameter value changes (see `render` below).
    @param format the sample format to expect
    @param maxFramesToRender the maximum number of frames to expect on input
    @param treeBasedRampDuration the number of frames to ramp a parameter value change
    */
-  void setRenderingFormat(NSInteger busCount, AVAudioFormat* _Nonnull format,
-                          AUAudioFrameCount maxFramesToRender, AUAudioFrameCount treeBasedRampDuration = 16) noexcept {
+  void setRenderingFormat(NSInteger busCount, AVAudioFormat* _Nonnull format, AUAudioFrameCount maxFramesToRender,
+                          AUAudioFrameCount treeBasedRampDuration = 16) noexcept {
     sampleRate_ = format.sampleRate;
     treeBasedRampDuration_ = treeBasedRampDuration;
+    renderCounter_ = 0;
 
     auto channelCount{format.channelCount};
 
@@ -113,11 +116,6 @@ public:
 
     // Setup sample buffers to have the right format and capacity. This is constant as long as rendering is active.
     for (auto& entry : outputBusses_) entry.allocate(format, maxFramesToRender);
-
-    // Link the output buffers with their corresponding facets. This only needs to be done once.
-    for (auto pair : std::views::zip(outputFacets_, outputBusses_)) {
-      std::get<0>(pair).assignBufferList(std::get<1>(pair).mutableAudioBufferList());
-    }
 
     setRendering(true);
   }
@@ -159,7 +157,9 @@ public:
 
   /**
    Process events and render a given number of frames. Events and rendering are interleaved when necessary so that
-   event times align with samples.
+   event times align with samples. There is support for multiple output busses, but only the first one will be
+   processed with MIDI and AUParameter changes. This is usually not an issue for AUv3 effects. This probably should change
+   and be configurable or driven by type concept like other aspects of the rendering flow are.
 
    @param timestamp the timestamp of the first sample or the first event
    @param frameCount the number of frames to process
@@ -168,11 +168,8 @@ public:
    @param realtimeEventListHead pointer to the first AURenderEvent (may be null)
    @param pullInputBlock the closure to call to obtain upstream samples (should be NULL for instruments)
    */
-  AUAudioUnitStatus processAndRender(const AudioTimeStamp* _Nonnull timestamp,
-                                     UInt32 frameCount,
-                                     NSInteger outputBusNumber,
-                                     AudioBufferList* _Nonnull output,
-                                     const AURenderEvent* _Nullable realtimeEventListHead,
+  AUAudioUnitStatus processAndRender(const AudioTimeStamp* _Nonnull timestamp, UInt32 frameCount, NSInteger outputBusNumber,
+                                     AudioBufferList* _Nonnull output, const AURenderEvent* _Nullable realtimeEventListHead,
                                      AURenderPullInputBlock _Nullable pullInputBlock) noexcept {
     size_t outputBusIndex = size_t(outputBusNumber);
     assert(outputBusIndex < outputBusses_.size());
@@ -181,7 +178,7 @@ public:
     // use it for an output buffer if necessary.
     auto& outputBus{outputBusses_[outputBusIndex]};
     if (frameCount > outputBus.capacity()) [[unlikely]] {
-      os_log_info(log_, "processAndRender END - too many frames: %d > %d", frameCount, outputBus.capacity());
+      os_log_error(log_, "processAndRender END - too many frames: %d > %d", frameCount, outputBus.capacity());
       return kAudioUnitErr_TooManyFramesToProcess;
     }
 
@@ -194,6 +191,9 @@ public:
       // Pull input samples from upstream. If the output buffer we are given has no storage assigned to it, then we
       // will use our own and perform in-place rendering of the samples. This is detected and handled in the
       // `assignBufferList` method.
+      //
+      // * NOTE: this should only be used for filters, not for instruments.
+      //
       inputFacet_.assignBufferList(output, outputBus.mutableAudioBufferList());
       inputFacet_.setFrameCount(frameCount);
 
@@ -203,14 +203,11 @@ public:
         os_log_info(log_, "processAndRender END - invalid response from pullInputBlock: %d", status);
         return status;
       }
-    } else {
-
-      // Clear the output buffer before use when there is no input data.
-      outputFacets_[outputBusIndex].clear(frameCount);
     }
 
-    // Apply any paramter changes posted by the UI
+    // Apply any paramter changes posted by the UI.
     checkForParameterValueChanges();
+
     render(outputBusNumber, timestamp, frameCount, realtimeEventListHead);
 
     return noErr;
@@ -329,27 +326,56 @@ private:
     auto now = AUEventSampleTime(timestamp->mSampleTime);
     auto framesRemaining = frameCount;
 
-    while (framesRemaining > 0) [[likely]] {
+    // For the first output bus, we allow for interleaving of MIDI and AUParameter value change events.
+    // Additional busses are supported, but only first one will process the MIDI and AUParameter events.
+    if (outputBusNumber == 0) {
+      ++renderCounter_;
 
-      // Short-circuit if there are no more events to interleave
-      if (events == nullptr) [[likely]] {
-        makeFrames(outputFacet, framesRemaining, frameCount - framesRemaining);
-        return;
+      while (framesRemaining > 0 && events != nullptr) [[unlikely]] {
+        os_log_info(log_, "%lu %ld render now: %lld framesRemaining: %u", renderCounter_, outputBusNumber, now, framesRemaining);
+
+        // See if there are frames to process before the next event. Here "time" is measured in samples, so we just need
+        // to change type to convert between the two.
+        auto eventSampleTime = events->head.eventSampleTime;
+        auto framesBefore = AUAudioFrameCount(eventSampleTime < now ? 0 : eventSampleTime - now);
+
+        if (framesBefore > 0) {
+          makeFrames(outputBusNumber, outputFacet, framesBefore, frameCount - framesRemaining);
+          framesRemaining -= framesBefore;
+          now += AUEventSampleTime(framesBefore);
+        }
+
+        // Process the events for the current time
+        events = processEventsUntil(now, events);
       }
+    }
 
-      // See if there are frames to process before the next event. Here "time" is measured in samples, so we just need
-      // to change type to convert between the two.
-      auto eventSampleTime = events->head.eventSampleTime;
-      auto framesBefore = AUAudioFrameCount(eventSampleTime < now ? 0 : eventSampleTime - now);
+    if (framesRemaining > 0) {
+      makeFrames(outputBusNumber, outputFacet, framesRemaining, frameCount - framesRemaining);
+    }
+  }
 
-      if (framesBefore > 0) [[likely]] {
-        makeFrames(outputFacet, framesBefore, frameCount - framesRemaining);
-        framesRemaining -= framesBefore;
-        now += AUEventSampleTime(framesBefore);
+  inline void makeFrames(NSInteger outputBusNumber, BusBufferFacet& outputFacet, AUAudioFrameCount frameCount,
+                         AUAudioFrameCount processed) {
+    // This method may be called multiple times during one `processAndRender` call due to interleaved audio events
+    // such as MIDI messages. We will generate in total `frameCount` + `processedFrameCount` samples, but maybe not in
+    // one shot. As a result, we must adjust buffer pointers by the number of processed samples so far before we
+    // let the kernel render into our buffers.
+    outputFacet.setOffset(processed);
+    if (isBypassed()) {
+
+      // If we have input samples from an upstream node, either use the sample buffers directly or copy samples over
+      // to the output buffer. Otherwise, we have already zero'd out the output buffer, so we are done.
+      if (inputFacet_.isLinked()) {
+        inputFacet_.copyInto(outputFacet, processed, frameCount);
       }
-
-      // Process the events for the current time
-      events = processEventsUntil(now, events);
+    } else {
+      if constexpr(HasDoRenderingWithOutputBus<KernelType>) {
+        derived_.doRendering(outputBusNumber, inputFacet_.busBuffers(), outputFacet.busBuffers(), frameCount);
+      }
+      else if constexpr(HasDoRendering<KernelType>) {
+        derived_.doRendering(inputFacet_.busBuffers(), outputFacet.busBuffers(), frameCount);
+      }
     }
   }
 
@@ -360,34 +386,32 @@ private:
   }
 
   AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now, AURenderEvent const* _Nonnull event) noexcept {
-    os_log_info(log_, "processingEventsUntil BEGIN");
+    os_log_info(log_, "%lu processingEventsUntil BEGIN - %p", renderCounter_, event);
     while (event != nullptr && event->head.eventSampleTime <= now) {
       switch (event->head.eventType) {
+
         case AURenderEventParameter:
-          os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress,
-                      event->parameter.value);
+          os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress, event->parameter.value);
           processEventParameterChange(event->parameter, treeBasedRampDuration_);
           break;
 
         case AURenderEventParameterRamp:
-          os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress,
-                      event->parameter.value, event->parameter.rampDurationSampleFrames);
+          os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress, event->parameter.value,
+                      event->parameter.rampDurationSampleFrames);
           processEventParameterChange(event->parameter, event->parameter.rampDurationSampleFrames);
           break;
 
         case AURenderEventMIDI:
         case AURenderEventMIDISysEx:
-          os_log_info(log_, "processingEventsUntil - MIDI v1 events");
+          os_log_info(log_, "processingEventsUntil - MIDI v1 events %p - now: %lld event: %lld", event, now,
+                      event->head.eventSampleTime);
           if constexpr (HasMIDIEventV1<KernelType>) {
-            os_log_info(log_, "processingEventsUntil - invoking doMIDIEvent");
             derived_.doMIDIEvent(event->MIDI);
-          } else {
-            os_log_debug(log_, "processingEventsUntil - ignoring doMIDIEvent");
           }
           break;
 
         case AURenderEventMIDIEventList:
-          os_log_info(log_, "processingEventsUntil - MIDI v2 events");
+          os_log_info(log_, "processingEventsUntil - ignoring MIDI v2 events");
           // TODO: handle MIDI v2 packets
           break;
 
@@ -398,27 +422,6 @@ private:
     }
 
     return event;
-  }
-
-  inline void makeFrames(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount, AUAudioFrameCount processed) {
-    // This method may be called multiple times during one `processAndRender` call due to interleaved audio events
-    // such as MIDI messages. We will generate in total `frameCount` + `processedFrameCount` samples, but maybe not in
-    // one shot. As a result, we must adjust buffer pointers by the number of processed samples so far before we
-    // let the kernel render into our buffers.
-    for (auto& facet : outputFacets_) facet.setOffset(processed);
-    isBypassed() ? bypassedFrames(outputFacet, frameCount, processed) : renderedFrames(outputFacet, frameCount);
-  }
-
-  inline void bypassedFrames(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount, AUAudioFrameCount processed) {
-    // If we have input samples from an upstream node, either use the sample buffers directly or copy samples over
-    // to the output buffer. Otherwise, we have already zero'd out the output buffer, so we are done.
-    if (inputFacet_.isLinked()) {
-      inputFacet_.copyInto(outputFacet, processed, frameCount);
-    }
-  }
-
-  inline void renderedFrames(BusBufferFacet& outputFacet, AUAudioFrameCount frameCount) {
-    derived_.doRendering(inputFacet_.busBuffers(), outputFacet.busBuffers(), frameCount);
   }
 
   KernelType& derived_;
@@ -432,8 +435,9 @@ private:
   std::atomic<bool> rendering_{false};
 
   double sampleRate_{};
-
+  
   ParameterMap parameters_{};
+  unsigned long int renderCounter_{0};
 };
 
 /**
