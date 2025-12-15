@@ -394,7 +394,7 @@ private:
         default:
           break;
       }
-      event = event->head.next;
+      event = const_cast<AURenderEvent*>(event->head.next);
     }
 
     return event;

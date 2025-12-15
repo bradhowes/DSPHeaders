@@ -27,7 +27,7 @@ public:
   : Bool(DSPHeaders::valueOf(address), value) {}
 
   /// @returns the boolean state of the parameter
-  operator bool() const noexcept { return super::getImmediate(); }
+  operator bool() const noexcept { return super::getImmediate() != 0.0 ? true : false; }
 };
 
 } // end namespace DSPHeaders::Parameters

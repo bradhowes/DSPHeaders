@@ -31,24 +31,24 @@ struct RenderBlockShim
 
   AUInternalRenderBlock internalRenderBlock() {
     if (kernel_.processAndRender) {
-      return ^AUAudioUnitStatus(AudioUnitRenderActionFlags         *actionFlags,
-                                const AudioTimeStamp               *timestamp,
-                                AVAudioFrameCount                   frameCount,
-                                NSInteger                           outputBusNumber,
-                                AudioBufferList                    *outputData,
-                                const AURenderEvent                *realtimeEventListHead,
+      return ^AUAudioUnitStatus(AudioUnitRenderActionFlags*,
+                                const AudioTimeStamp* timestamp,
+                                AVAudioFrameCount frameCount,
+                                NSInteger outputBusNumber,
+                                AudioBufferList* outputData,
+                                const AURenderEvent* realtimeEventListHead,
                                 AURenderPullInputBlock __unsafe_unretained pullInputBlock) {
         return kernel_.processAndRender(timestamp, frameCount, outputBusNumber, outputData, realtimeEventListHead,
                                         pullInputBlock);
       };
     } else {
-      return ^AUAudioUnitStatus(AudioUnitRenderActionFlags         *actionFlags,
-                                const AudioTimeStamp               *timestamp,
-                                AVAudioFrameCount                   frameCount,
-                                NSInteger                           outputBusNumber,
-                                AudioBufferList                    *outputData,
-                                const AURenderEvent                *realtimeEventListHead,
-                                AURenderPullInputBlock __unsafe_unretained pullInputBlock) {
+      return ^AUAudioUnitStatus(AudioUnitRenderActionFlags*,
+                                const AudioTimeStamp*,
+                                AVAudioFrameCount,
+                                NSInteger,
+                                AudioBufferList*,
+                                const AURenderEvent*,
+                                AURenderPullInputBlock __unsafe_unretained) {
         return -1;
       };
     }
