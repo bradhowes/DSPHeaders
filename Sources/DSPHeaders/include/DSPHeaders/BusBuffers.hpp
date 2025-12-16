@@ -5,6 +5,7 @@
 #import <cassert>
 #import <cmath>
 #import <span>
+#import <type_traits>
 #import <vector>
 
 #import <AudioToolbox/AudioToolbox.h>
@@ -60,7 +61,11 @@ public:
     constexpr auto stride = vDSP_Stride(1);
     auto length = vDSP_Length(frameCount);
     for (UInt32 channel = 0; channel < buffers_.size(); ++channel) {
-      Accelerated<AUValue>::zeroProc(buffers_[channel], stride, length);
+      auto ptr = buffers_[channel];
+      if (ptr != nullptr) {
+        using elemType = std::remove_pointer_t<decltype(ptr)>;
+        Accelerated<elemType>::zeroProc(ptr, stride, length);
+      }
     }
   }
 
