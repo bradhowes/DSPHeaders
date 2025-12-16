@@ -7,7 +7,7 @@
 
 using namespace DSPHeaders;
 
-@interface BufferFacetsTests : XCTestCase
+@interface BufferFacetTests : XCTestCase
 
 @end
 
@@ -15,7 +15,7 @@ static AVAudioFormat* monoFormat = [[AVAudioFormat alloc] initStandardFormatWith
 static AVAudioFormat* stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
 static AUAudioFrameCount maxFrames = 100;
 
-@implementation BufferFacetsTests
+@implementation BufferFacetTests
 
 - (void)setUp {
   // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -101,8 +101,8 @@ static AUAudioFrameCount maxFrames = 100;
 
   facet.setOffset(1);
   BusBuffers bb2{facet.busBuffers()};
-  bb2.addAll(0, 4.0);
-  bb2.addAll(1, 5.0);
+  bb2.addAll(0, 4.0); // + 2 = 6
+  bb2.addAll(1, 5.0); // + 3 = 8
 
   float* left = (float*)(stereoBuffer.mutableAudioBufferList()->mBuffers[0].mData);
   float* right = (float*)(stereoBuffer.mutableAudioBufferList()->mBuffers[1].mData);
@@ -112,6 +112,41 @@ static AUAudioFrameCount maxFrames = 100;
   XCTAssertEqual(6.0, right[1]);
   XCTAssertEqual(8.0, left[2]);
   XCTAssertEqual(8.0, right[2]);
+  XCTAssertEqual(4.0, left[3]);
+  XCTAssertEqual(4.0, right[3]);
+}
+
+- (void)testClear {
+  BusSampleBuffer stereoBuffer;
+  stereoBuffer.allocate(stereoFormat, maxFrames);
+
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  facet.assignBufferList(stereoBuffer.mutableAudioBufferList());
+  BusBuffers bb1{facet.busBuffers()};
+  XCTAssertTrue(bb1.isValid());
+  XCTAssertTrue(bb1.isStereo());
+
+  bb1.addAll(0, 1.0);
+  bb1.addAll(1, 2.0);
+  bb1.addAll(2, 3.0);
+  bb1.addAll(3, 4.0);
+
+  facet.setOffset(1);
+
+  BusBuffers bb2{facet.busBuffers()};
+  bb2.addAll(0, 4.0); // + 2 = 6
+  bb2.addAll(1, 5.0); // + 3 = 8
+  bb2.clear(2);
+
+  float* left = (float*)(stereoBuffer.mutableAudioBufferList()->mBuffers[0].mData);
+  float* right = (float*)(stereoBuffer.mutableAudioBufferList()->mBuffers[1].mData);
+  XCTAssertEqual(1.0, left[0]);
+  XCTAssertEqual(1.0, right[0]);
+  XCTAssertEqual(0.0, left[1]);
+  XCTAssertEqual(0.0, right[1]);
+  XCTAssertEqual(0.0, left[2]);
+  XCTAssertEqual(0.0, right[2]);
   XCTAssertEqual(4.0, left[3]);
   XCTAssertEqual(4.0, right[3]);
 }

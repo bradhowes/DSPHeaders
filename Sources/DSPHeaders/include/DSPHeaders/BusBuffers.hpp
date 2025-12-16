@@ -50,7 +50,7 @@ public:
   bool isMono() const noexcept { return buffers_.size() == 1; }
 
   /// @returns true if the buffer collection is stereo (2 channel)
-  bool isStereo() const noexcept { return buffers_.size() > 1; }
+  bool isStereo() const noexcept { return buffers_.size() == 2; }
 
   /**
    Set `frameCount` frames to zero (0.0).
