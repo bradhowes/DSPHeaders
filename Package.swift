@@ -2,6 +2,8 @@
 
 import PackageDescription
 
+let useUnsafeFlags = false
+
 let package = Package(
   name: "DSPHeaders",
   platforms: [.iOS(.v14), .macOS(.v14)],
@@ -138,10 +140,8 @@ extension Array where Element == CXXSetting {
       "-Wunused-variable",
       // "-Wzero-as-null-pointer-constant",
       "-Wzero-length-array",
+      "-x", "objective-c++"
     ]
-    return [
-      .unsafeFlags(unsafeFlags, .when(configuration: .debug)),
-      .unsafeFlags(["-x", "objective-c++"], .none)
-    ]
+    return useUnsafeFlags ? [.unsafeFlags(unsafeFlags, .when(configuration: .debug))] : []
   }
 }
