@@ -1,6 +1,11 @@
 # Semi-hacky way to get Emacs eglot with clangd to work OK on macOS. The use of Cmake here is solely for the purposes of
 # generating a cmake/compile_commands.json file with the list of sources. There is an existing Makefile which is used
 # for the Github CI pipeline, and it can also be used via the command-line.
+#
+# To rebuild the compile_commands.json file:
+#
+#   % cmake -S . -G "Unix Makefiles" -B cmake
+#
 
 cmake_minimum_required(VERSION 4.2)
 
@@ -9,7 +14,6 @@ project(DSPHeaders)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SDK "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
 
-# Change path from /src if needed, or add more directories
 file(GLOB_RECURSE Sources "${CMAKE_SOURCE_DIR}/Sources/DSPHeaders/*.mm")
 
 # No idea what is really necessary here, but this seems to give clangd enough info to parse the Objective C++ files..

@@ -5,7 +5,7 @@
 #import <type_traits>
 
 #import <os/log.h>
-#import <AudioToolbox/AudioToolbox.h>
+#import <AudioToolbox/AUAudioUnit.h>
 #import <algorithm>
 #import <span>
 #import <vector>
