@@ -5,7 +5,7 @@
 #import <concepts>
 #import <type_traits>
 
-#import <AudioToolbox/AUParameters.h>
+#import <AudioToolbox/AudioToolbox.h>
 
 #import "DSPHeaders/BusBuffers.hpp"
 #import "DSPHeaders/BusBufferFacet.hpp"
