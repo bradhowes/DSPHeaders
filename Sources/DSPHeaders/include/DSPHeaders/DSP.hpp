@@ -5,7 +5,6 @@
 #import <algorithm>
 #import <array>
 #import <cassert>
-#import <cmath>
 
 #import "DSPHeaders/ConstMath.hpp"
 
@@ -70,8 +69,8 @@ constexpr auto bipolarModulation(ValueType value, ValueType minValue, ValueType 
  */
 template <typename ValueType>
 constexpr auto parabolicSine(ValueType angle) noexcept {
-  constexpr ValueType B{ 4.0 / M_PI};
-  constexpr ValueType C{-4.0 / (M_PI * M_PI)};
+  constexpr ValueType B{ 4.0 / ConstMath::Constants<ValueType>::PI};
+  constexpr ValueType C{-4.0 / (ConstMath::Constants<ValueType>::PI * ConstMath::Constants<ValueType>::PI)};
   constexpr ValueType P{0.225};
   const ValueType y{B * angle + C * angle * ConstMath::abs<>(angle)};
   const ValueType Py{P * y};

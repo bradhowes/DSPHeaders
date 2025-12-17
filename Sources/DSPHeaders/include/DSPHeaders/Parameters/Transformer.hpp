@@ -4,8 +4,9 @@
 
 #import <algorithm>
 #import <atomic>
+#include <cmath>
 
-#import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AUParameters.h>
 
 namespace DSPHeaders::Parameters {
 

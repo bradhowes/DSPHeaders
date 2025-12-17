@@ -6,7 +6,8 @@
 #import <atomic>
 #import <cassert>
 
-#import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AUParameters.h>
+
 #import "DSPHeaders/Concepts.hpp"
 #import "DSPHeaders/Parameters/Transformer.hpp"
 #import "DSPHeaders/Types.hpp"

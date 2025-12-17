@@ -3,12 +3,10 @@
 #pragma once
 
 #import <cassert>
-#import <cmath>
-#import <span>
 #import <type_traits>
 #import <vector>
 
-#import <AudioToolbox/AudioToolbox.h>
+#import <AudioToolbox/AUAudioUnit.h>
 
 #import "DSPHeaders/Accelerated.hpp"
 

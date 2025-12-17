@@ -5,10 +5,7 @@
 #import <cassert>
 #import <string>
 
-#import <os/log.h>
-#import <AudioToolbox/AudioToolbox.h>
-#import <AudioUnit/AudioUnit.h>
-#import <AVFoundation/AVFoundation.h>
+#import <AVFAudio/AVFAudio.h>
 
 namespace DSPHeaders {
 

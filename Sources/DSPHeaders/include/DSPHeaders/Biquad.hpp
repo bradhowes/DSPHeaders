@@ -3,10 +3,9 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 #include <utility>
 
-#include <AVFoundation/AVFoundation.h>
+#include <AudioToolbox/AUParameters.h>
 
 namespace DSPHeaders::Biquad {
 

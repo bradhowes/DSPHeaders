@@ -34,6 +34,7 @@ let package = Package(
 extension Array where Element == CXXSetting {
   static var cxxSettings: [CXXSetting] {
     let unsafeFlags = [
+      "-O3",
       "-pedantic",
       "-Wall",
       "-Wassign-enum",

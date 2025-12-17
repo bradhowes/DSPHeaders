@@ -9,6 +9,11 @@
 
 namespace DSPHeaders {
 
+/**
+   The Swift/C++ bridge has (had?) some issues with mapping `AUInternalRenderBlock` into Swift. The following works
+   around the issue by type-erasing the `AUInternalRenderBlock` invocation via a `std::function` value that is later
+   invoked via a shim.
+ */
 struct TypeErasedKernel
 {
   using ProcessAndRender = std::function<AUAudioUnitStatus(const AudioTimeStamp*,
@@ -17,12 +22,12 @@ struct TypeErasedKernel
                                                            AudioBufferList*,
                                                            const AURenderEvent*,
                                                            AURenderPullInputBlock)>;
-  TypeErasedKernel() : processAndRender{} {}
+  TypeErasedKernel() : processAndRender_{} {}
 
-  TypeErasedKernel(ProcessAndRender par) : processAndRender{par} {}
+  TypeErasedKernel(ProcessAndRender par) : processAndRender_{par} {}
 
   std::function<AUAudioUnitStatus(const AudioTimeStamp*, UInt32, NSInteger, AudioBufferList*, const AURenderEvent*,
-                                  AURenderPullInputBlock)> processAndRender;
+                                  AURenderPullInputBlock)> processAndRender_;
 };
 
 struct RenderBlockShim
@@ -30,16 +35,17 @@ struct RenderBlockShim
   RenderBlockShim(TypeErasedKernel kernel) : kernel_{kernel} {}
 
   AUInternalRenderBlock internalRenderBlock() {
-    if (kernel_.processAndRender) {
-      return ^AUAudioUnitStatus(AudioUnitRenderActionFlags*,
-                                const AudioTimeStamp* timestamp,
-                                AVAudioFrameCount frameCount,
-                                NSInteger outputBusNumber,
-                                AudioBufferList* outputData,
-                                const AURenderEvent* realtimeEventListHead,
-                                AURenderPullInputBlock __unsafe_unretained pullInputBlock) {
-        return kernel_.processAndRender(timestamp, frameCount, outputBusNumber, outputData, realtimeEventListHead,
-                                        pullInputBlock);
+    if (kernel_.processAndRender_) {
+      __block auto proc = kernel_.processAndRender_;
+      return ^AUAudioUnitStatus(
+        AudioUnitRenderActionFlags*,
+        const AudioTimeStamp* timestamp,
+        AVAudioFrameCount frameCount,
+        NSInteger outputBusNumber,
+        AudioBufferList* outputData,
+        const AURenderEvent* realtimeEventListHead,
+        AURenderPullInputBlock __unsafe_unretained pullInputBlock) {
+        return proc(timestamp, frameCount, outputBusNumber, outputData, realtimeEventListHead, pullInputBlock);
       };
     } else {
       return ^AUAudioUnitStatus(AudioUnitRenderActionFlags*,

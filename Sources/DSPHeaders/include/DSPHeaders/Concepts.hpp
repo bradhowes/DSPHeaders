@@ -1,9 +1,11 @@
 // Copyright © 2024-2025 Brad Howes. All rights reserved.
 
+#pragma once
+
 #import <concepts>
 #import <type_traits>
 
-#import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AUParameters.h>
 
 #import "DSPHeaders/BusBuffers.hpp"
 #import "DSPHeaders/BusBufferFacet.hpp"

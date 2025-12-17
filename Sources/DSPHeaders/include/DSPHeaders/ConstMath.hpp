@@ -2,10 +2,8 @@
 
 #pragma once
 
-#include <algorithm>
 #include <array>
-#include <cmath>
-#include <cstdint>
+#include <type_traits>
 
 /**
  Collection of compile-time methods that can be used to create lookup tables for various DSP operations.

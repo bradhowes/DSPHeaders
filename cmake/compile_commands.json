@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/howes/Developer/Mine/DSPHeaders/cmake",
+  "command": "/usr/bin/c++  -I/Users/howes/Developer/Mine/DSPHeaders/Sources/DSPHeaders/include  -arch arm64 -g -DDEBUG -D__OBJC2__ -D__USE_PUBLIC_HEADERS__ -ObjC++ -std=c++23 -framework Foundation AudioToolbox -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -o CMakeFiles/DSPHeaders.dir/Sources/DSPHeaders/DSPHeaders.mm.o -c /Users/howes/Developer/Mine/DSPHeaders/Sources/DSPHeaders/DSPHeaders.mm",
+  "file": "/Users/howes/Developer/Mine/DSPHeaders/Sources/DSPHeaders/DSPHeaders.mm",
+  "output": "CMakeFiles/DSPHeaders.dir/Sources/DSPHeaders/DSPHeaders.mm.o"
+}
+]
