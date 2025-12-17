@@ -12,7 +12,7 @@ namespace DSPHeaders::DSP {
 
 /**
  Translate value in range [0, +1] into one in range [-1, +1]
- 
+
  @param value the value to translate
  @returns value in range [-1, +1]
  */
@@ -21,7 +21,7 @@ constexpr auto unipolarToBipolar(ValueType value) noexcept { return 2.0 * value 
 
 /**
  Translate value in range [-1, +1] into one in range [0, +1]
- 
+
  @param value the value to translate
  @returns value in range [0, +1]
  */
@@ -30,7 +30,7 @@ constexpr auto bipolarToUnipolar(ValueType value) noexcept { return 0.5 * value 
 
 /**
  Perform linear translation from a value in range [0.0, 1.0] into one in [minValue, maxValue].
- 
+
  @param value the value to translate
  @param minValue the lowest value to return when modulator is 0
  @param maxValue the highest value to return when modulator is +1
@@ -43,7 +43,7 @@ constexpr auto unipolarModulation(ValueType value, ValueType minValue, ValueType
 
 /**
  Perform linear translation from a value in range [-1.0, 1.0] into one in [minValue, maxValue]
- 
+
  @param value the value to translate
  @param minValue the lowest value to return when modulator is -1
  @param maxValue the highest value to return when modulator is +1
@@ -63,7 +63,7 @@ constexpr auto bipolarModulation(ValueType value, ValueType minValue, ValueType 
 
  However, according to unit tests on modern Apple devices, std::sin is much faster than the parabolic calculation below
  so this is not used.
- 
+
  @param angle value between -PI and PI
  @returns approximate sin value
  */

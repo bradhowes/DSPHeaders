@@ -433,7 +433,7 @@ private:
   std::atomic<bool> rendering_{false};
 
   double sampleRate_{};
-  
+
   ParameterMap parameters_{};
   unsigned long int renderCounter_{0};
 };

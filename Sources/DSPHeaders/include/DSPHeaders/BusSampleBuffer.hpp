@@ -24,7 +24,7 @@ struct BusSampleBuffer {
 
   /**
    Set the format of the buffer to use.
-   
+
    @param format the format of the samples
    @param maxFrames the maximum number of frames to be found in the upstream output
    */
@@ -33,7 +33,7 @@ struct BusSampleBuffer {
     buffer_ = [[AVAudioPCMBuffer alloc] initWithPCMFormat: format frameCapacity: maxFrames];
     mutableAudioBufferList_ = buffer_.mutableAudioBufferList;
   }
-  
+
   /**
    Forget any allocated buffer.
    */
@@ -45,7 +45,7 @@ struct BusSampleBuffer {
     buffer_ = nullptr;
     mutableAudioBufferList_ = nullptr;
   }
-  
+
   /**
    Update the buffer to reflect that has or will hold frameCount frames. NOTE: this value must be \<= the max value
    given in the `allocate` method.

@@ -15,7 +15,7 @@ namespace DSPHeaders {
  Generates a phase-shift audio effect as described in "Designing Audio Effect Plugins in C++" by Will C. Pirkle (2019).
  The shifter is made up of 6 all-pass filters with different, overlapping frequency bands. The operation of the filter
  follows that of Pirkle's documentation and code, but below is a more modern C++ take on it.
- 
+
  There should be one instance of a PhaseShifter per one channel of audio, with all instances sharing the same LFO that
  modulates their frequency bands.
  */
@@ -34,7 +34,7 @@ public:
 
   /// Definition of a collection of frequency bands
   using FrequencyBands = std::array<Band, BandCount>;
-  
+
   /// Collection of frequency bands based on Pirkle's ideal.
   inline static FrequencyBands ideal {
     16.0, 1600.0,
@@ -44,7 +44,7 @@ public:
     160.0, 16000.0,
     260.0, 20480.0
   };
-  
+
   /// Collection of frequency bands based on National Semiconductor paper and Pirkle's interpretation.
   inline static FrequencyBands nationalSemiconductor {
     32.0, 1500.0,
@@ -54,10 +54,10 @@ public:
     320.0, 16000.0,
     636.0, 20480.0
   };
-  
+
   /**
    Construct new phase-shift operator.
-   
+
    @param bands the frequency bands to operate over
    @param sampleRate the sample rate to work with
    @param intensity a "gain" value that is applied to final filter value
@@ -69,14 +69,14 @@ public:
     assert(samplesPerFilterUpdate > 0);
     updateCoefficients(0.0);
   }
-  
+
   /**
    Set the intensity (gain) value.
-   
+
    @param intensity new value to use
    */
   void setIntensity(double intensity) noexcept { intensity_ = intensity; }
-  
+
   /**
    Reset the audio processor.
    */
@@ -87,10 +87,10 @@ public:
     }
     updateCoefficients(0.0);
   }
-  
+
   /**
    Generate a new audio sample
-   
+
    @param modulation the modulation amount to apply to the filter coefficients
    @param input the audio input signal to inject into the filters
    @returns filtered audio output
@@ -104,27 +104,27 @@ public:
       updateCoefficients(modulation);
       filterUpdateCounter_ = 0;
     }
-    
+
     // Calculate gamma values from the individual filters.
     for (size_t index = 1; index <= filters_.size(); ++index) {
       gammas_[index] = filters_[filters_.size() - index].gainValue() * gammas_[index - 1];
     }
-    
+
     // Calculate weighted state sum of past values to mix with input
     ValueType weightedSum = 0.0;
     for (auto index = 0; index < filters_.size(); ++index) {
       weightedSum += gammas_[filters_.size() - index - 1] * filters_[index].storageComponent();
     }
-    
+
     // Finally, apply the filters in series
     ValueType output = (input + intensity_ * weightedSum) / (1.0 + intensity_ * gammas_.back());
     for (auto& filter : filters_) {
       output = filter.transform(output);
     }
-    
+
     return output;
   }
-  
+
 private:
   using AllPassFilter = Biquad::CanonicalTranspose<ValueType>;
 
@@ -135,7 +135,7 @@ private:
       filters_[index].setCoefficients(Biquad::Coefficients<ValueType>::APF1(sampleRate_, frequency));
     }
   }
-  
+
   const FrequencyBands& bands_;
   ValueType sampleRate_;
   ValueType intensity_;

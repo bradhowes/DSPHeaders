@@ -34,7 +34,7 @@ using namespace DSPHeaders;
   XCTAssertEqual(DSP::bipolarModulation(-1.0, 10.0, 20.0), 10.0);
   XCTAssertEqual(DSP::bipolarModulation(0.0, 10.0, 20.0), 15.0);
   XCTAssertEqual(DSP::bipolarModulation(1.0, 10.0, 20.0), 20.0);
-  
+
   XCTAssertEqual(DSP::bipolarModulation(-1.0, -20.0, 13.0), -20.0);
   XCTAssertEqual(DSP::bipolarModulation(0.0,  -20.0, 13.0), -3.5);
   XCTAssertEqual(DSP::bipolarModulation(1.0,  -20.0, 13.0), 13.0);

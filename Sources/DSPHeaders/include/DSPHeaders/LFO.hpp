@@ -15,11 +15,11 @@ namespace DSPHeaders {
 
 /**
  Implementation of a low-frequency oscillator. Can generate:
- 
+
  - sinusoid
  - triangle
  - sawtooth
- 
+
  The output is bipolar ([-1.0, 1.0]). Use DSP::bipolarToUnipolar to generate values in [0.0, 1.0].
 
  Loosely based on code found in "Designing Audio Effect Plugins in C++" by Will C. Pirkle (2019).
@@ -62,7 +62,7 @@ public:
 
   /**
    Set the sample rate to use.
-   
+
    @param sampleRate number of samples per second
    */
   void setSampleRate(ValueType sampleRate) noexcept {
@@ -71,7 +71,7 @@ public:
 
   /**
    Set the waveform to use
-   
+
    @param waveform the waveform to emit
    */
   void setWaveform(LFOWaveform waveform) noexcept {

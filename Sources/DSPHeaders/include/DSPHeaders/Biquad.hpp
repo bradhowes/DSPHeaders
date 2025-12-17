@@ -36,7 +36,7 @@ struct Coefficients {
 
   /**
    Constructor to set all coefficients at once
-   
+
    @param _a0 A0 coefficient
    @param _a1 A1 coefficient
    @param _a2 A2 coefficient
@@ -58,43 +58,43 @@ struct Coefficients {
 
   /**
    Set the A0 coefficient, the first coefficient in the numerator
-   
+
    @param VV the value to use
    @returns updated Coefficients collection
    */
   Coefficients A0(ValueType VV) noexcept { return Coefficients(VV, a1, a2, b1, b2); }
   /**
    Set the A1 coefficient, the second coefficient in the numerator
-   
+
    @param VV the value to use
    @returns updated Coefficients collection
    */
   Coefficients A1(ValueType VV) noexcept { return Coefficients(a0, VV, a2, b1, b2); }
   /**
    Set the A2 coefficient, the third coefficient in the numerator
-   
+
    @param VV the value to use
    @returns updated Coefficients collection
    */
   Coefficients A2(ValueType VV) noexcept { return Coefficients(a0, a1, VV, b1, b2); }
   /**
    Set the B1 coefficient, the second coefficient in the denominator
-   
+
    @param VV the value to use
    @returns updated Coefficients collection
    */
   Coefficients B1(ValueType VV) noexcept { return Coefficients(a0, a1, a2, VV, b2); }
   /**
    Set the B2 coefficient, the third coefficient in the denominator
-   
+
    @param VV the value to use
    @returns updated Coefficients collection
    */
   Coefficients B2(ValueType VV) noexcept { return Coefficients(a0, a1, a2, b1, VV); }
-  
+
   /**
    A 1-pole low-pass filter coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
@@ -104,10 +104,10 @@ struct Coefficients {
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     return Coefficients((1.0 - gamma) / 2.0f, (1.0f - gamma) / 2.0f, 0.0f, -gamma, 0.0f);
   }
-  
+
   /**
    A 1-pole high-pass filter coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
@@ -117,10 +117,10 @@ struct Coefficients {
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     return Coefficients((1.0 + gamma) / 2.0f, (1.0f + gamma) / -2.0f, 0.0f, -gamma, 0.0f);
   }
-  
+
   /**
    A 2-pole low-pass coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @param resonance the filter resonance parameter (Q)
@@ -135,10 +135,10 @@ struct Coefficients {
     ValueType alpha = (0.5f + beta - gamma) / 2.0f;
     return Coefficients(alpha, 2.0f * alpha, alpha, -2.0f * gamma, 2.0f * beta);
   }
-  
+
   /**
    A 2-pole high-pass filter coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @param resonance the filter resonance parameter (Q)
@@ -152,10 +152,10 @@ struct Coefficients {
     return Coefficients((0.5f + beta + gamma) / 2.0f, -1.0f * (0.5f + beta + gamma), (0.5f + beta + gamma) / 2.0f,
                         -2.0f * gamma, 2.0f * beta);
   }
-  
+
   /**
    A 1-pole all-pass filter coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
@@ -165,10 +165,10 @@ struct Coefficients {
     ValueType alpha = (tangent - 1.0f) / (tangent + 1.0f);
     return Coefficients(alpha, 1.0f, 0.0f, alpha, 0.0f);
   }
-  
+
   /**
    A 2-pole all-pass filter coefficients generator.
-   
+
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
    @param resonance the filter resonance parameter (Q)
@@ -270,7 +270,7 @@ struct Direct : public Base<ValueType> {
 
   /**
    Transform a value
-   
+
    @param input the input value to transform
    @param state the filter state work with
    @param coefficients the filter coefficients to use
@@ -287,10 +287,10 @@ struct Direct : public Base<ValueType> {
     state.y_z1 = output;
     return output;
   }
-  
+
   /**
    Obtain a numeric representation of the internal storage state
-   
+
    @param state the filter state work with
    @param coefficients the filter coefficients to use
    @returns state convolved with coefficients
@@ -305,10 +305,10 @@ struct Direct : public Base<ValueType> {
 /// Transform for the 'canonical' biquad structure (min state)
 template <typename ValueType = AUValue>
 struct Canonical : Base<ValueType> {
-  
+
   /**
    Transform a value
-   
+
    @param input the input value to transform
    @param state the filter state work with
    @param coefficients the filter coefficients to use
@@ -323,10 +323,10 @@ struct Canonical : Base<ValueType> {
     state.x_z1 = theta;
     return output;
   }
-  
+
   /**
    Obtain a numeric representation of the internal storage state
-   
+
    @returns always 0.0
    */
   static ValueType storageComponent(const State<ValueType>&, const Coefficients<ValueType>&) noexcept { return 0.0; }
@@ -335,10 +335,10 @@ struct Canonical : Base<ValueType> {
 /// Transform for the transposed 'direct' biquad structure
 template <typename ValueType = AUValue>
 struct DirectTranspose : Base<ValueType> {
-  
+
   /**
    Transform a value
-   
+
    @param input the input value to transform
    @param state the filter state work with
    @param coefficients the filter coefficients to use
@@ -355,10 +355,10 @@ struct DirectTranspose : Base<ValueType> {
     state.x_z2 = coefficients.a2 * theta;
     return output;
   }
-  
+
   /**
    Obtain a numeric representation of the internal storage state
-   
+
    @returns always 0.0
    */
   static ValueType storageComponent(const State<ValueType>&, const Coefficients<ValueType>&) noexcept { return 0.0; }
@@ -367,10 +367,10 @@ struct DirectTranspose : Base<ValueType> {
 /// Transform for the transposed 'canonical' biquad structure (min state)
 template <typename ValueType = AUValue>
 struct CanonicalTranspose : Base<ValueType> {
-  
+
   /**
    Transform a value
-   
+
    @param input the input value to transform
    @param state the filter state work with
    @param coefficients the filter coefficients to use
@@ -383,10 +383,10 @@ struct CanonicalTranspose : Base<ValueType> {
     state.x_z2 = coefficients.a2 * input - coefficients.b2 * output;
     return output;
   }
-  
+
   /**
    Obtain a numeric representation of the internal storage state
-   
+
    @param state the filter state work with
    @returns the Z1 state value
    */
@@ -444,7 +444,7 @@ public:
   {
     ramper_.start(coefficients, rampDurationInSamples);
   }
-  
+
   /**
    Reset internal state.
    */
@@ -464,12 +464,12 @@ public:
   {
     return Transformer::transform(input, state_, ramper_.coefficients());
   }
-  
+
   /**
    Obtain the `gain` value from the coefficients.
    */
   ValueType gainValue() const noexcept { return ramper_.coefficients().a0; }
-  
+
   /**
    Obtain a calculated state value. This used in some of Pirkle's signal processing algorithms.
    */

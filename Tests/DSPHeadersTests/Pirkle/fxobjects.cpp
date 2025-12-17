@@ -72,7 +72,7 @@ double Biquad::processAudioSample(double xn)
 	if (parameters.biquadCalcType == biquadAlgorithm::kDirect)
 	{
 		// --- 1)  form output y(n) = a0*x(n) + a1*x(n-1) + a2*x(n-2) - b1*y(n-1) - b2*y(n-2)
-		double yn = coeffArray[a0] * xn + 
+		double yn = coeffArray[a0] * xn +
 					coeffArray[a1] * stateArray[x_z1] +
 					coeffArray[a2] * stateArray[x_z2] -
 					coeffArray[b1] * stateArray[y_z1] -
@@ -1568,4 +1568,3 @@ void PhaseVocoder::doOverlapAdd(double* outputData, int length)
 }
 
 #endif
-

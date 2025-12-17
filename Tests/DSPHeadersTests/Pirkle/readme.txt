@@ -6,7 +6,7 @@ You can download these files from: https://www.willpirkle.com/Downloads/fxobject
 
 Then, store them in your project's PluginObjects folder, and manually add them to the
 Xcode and/or Visual Studio projects in the same manner that you normally would
-add new (existing) project files. 
+add new (existing) project files.
 
 Please do NOT add these files to the ASPiK SDK as there are many users who do
 not want them, and Git merges will become confusing. Note that you can also
@@ -15,4 +15,3 @@ since they are part of RackAFX7 projects as well, but only as 3rd party
 supplies (there is NO RackAFX code in the fxobjects.h and .cpp files).
 
 - Will Pirkle
-

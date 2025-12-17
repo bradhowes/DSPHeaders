@@ -89,7 +89,7 @@ using namespace DSPHeaders;
 - (void)testLPF {
   double sampleRate = 44100.0;
   double frequency = 8000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::LPF1(sampleRate, frequency);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -97,7 +97,7 @@ using namespace DSPHeaders;
   params.fc = frequency;
   Pirkle::AudioFilter pirkle;
   pirkle.setParameters(params);
-  
+
   for (int counter = 0; counter < 7200; ++counter) {
     double input = std::sin(counter/10.0 * Pirkle::kPi / 180.0 );
     double output1 = filter.transform(input);
@@ -111,7 +111,7 @@ using namespace DSPHeaders;
 - (void)testLPF2 {
   double sampleRate = 44100.0;
   double frequency = 4000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::LPF2(sampleRate, frequency, 0.707);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -134,7 +134,7 @@ using namespace DSPHeaders;
 - (void)testHPF2 {
   double sampleRate = 44100.0;
   double frequency = 8000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::HPF2(sampleRate, frequency, 0.707);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -142,7 +142,7 @@ using namespace DSPHeaders;
   params.fc = frequency;
   Pirkle::AudioFilter pirkle;
   pirkle.setParameters(params);
-  
+
   for (int counter = 0; counter < 7200; ++counter) {
     double input = std::sin(counter/10.0 * Pirkle::kPi / 180.0 );
     double output1 = filter.transform(input);
@@ -154,7 +154,7 @@ using namespace DSPHeaders;
 - (void)testHPF {
   double sampleRate = 44100.0;
   double frequency = 8000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::HPF1(sampleRate, frequency);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -162,7 +162,7 @@ using namespace DSPHeaders;
   params.fc = frequency;
   Pirkle::AudioFilter pirkle;
   pirkle.setParameters(params);
-  
+
   for (int counter = 0; counter < 7200; ++counter) {
     double input = std::sin(counter/10.0 * Pirkle::kPi / 180.0 );
     double output1 = filter.transform(input);
@@ -174,7 +174,7 @@ using namespace DSPHeaders;
 - (void)testAPF1 {
   double sampleRate = 44100.0;
   double frequency = 4000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::APF1(sampleRate, frequency);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -182,7 +182,7 @@ using namespace DSPHeaders;
   params.fc = frequency;
   Pirkle::AudioFilter pirkle;
   pirkle.setParameters(params);
-  
+
   for (int counter = 0; counter < 7200; ++counter) {
     double input = std::sin(counter/10.0 * M_PI / 180.0 );
     double output1 = filter.transform(input);
@@ -194,7 +194,7 @@ using namespace DSPHeaders;
 - (void)testAPF2 {
   double sampleRate = 44100.0;
   double frequency = 4000.0;
-  
+
   Biquad::Coefficients coefficients = Biquad::Coefficients<>::APF2(sampleRate, frequency, 0.707);
   Biquad::Direct<> filter(coefficients);
   Pirkle::AudioFilterParameters params;
@@ -202,7 +202,7 @@ using namespace DSPHeaders;
   params.fc = frequency;
   Pirkle::AudioFilter pirkle;
   pirkle.setParameters(params);
-  
+
   for (int counter = 0; counter < 7200; ++counter) {
     double input = std::sin(counter/10.0 * M_PI / 180.0 );
     double output1 = filter.transform(input);
