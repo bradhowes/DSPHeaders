@@ -11,6 +11,9 @@
 
 namespace DSPHeaders {
 
+/**
+ Implementation of a low-pass filter that uses Apple's Accelerate framework to do the biquad calculations.
+ */
 class LowPassFilter {
 public:
   /**
@@ -18,7 +21,7 @@ public:
 
    @param frequency the cutoff frequency for the low-pass filter
    @param resonance the resonance setting for the low-pass filter
-   @param nyquistPeriod equivalent to 1.0 / (0.5 * sampleRate)
+   @param nyquistPeriod should be equivalent to 1.0 / (0.5 * sampleRate)
    @param numChannels number of channels the filter will process
    */
   void calculateParams(double frequency, double resonance, double nyquistPeriod, size_t numChannels);
@@ -28,10 +31,10 @@ public:
 
    @param frequencies array of frequency values to calculate on
    @param count the number of frequencies in the array
-   @param nyquistPeriod equivalent to 1.0 / (0.5 * sampleRate)
+   @param nyquistPeriod should be equivalent to 1.0 / (0.5 * sampleRate)
    @param magnitudes mutable array of values with the same size as `frequencies` for holding the results
    */
-  void magnitudes(double const* frequencies, size_t count, double nyquistPeriod, double* magnitudes) const;
+  void magnitudes(AUValue const* frequencies, size_t count, double nyquistPeriod, AUValue* magnitudes) const;
 
   /**
    Apply the filter to a collection of audio samples.
@@ -40,7 +43,7 @@ public:
    @param outs the storage for the filtered results
    @param frameCount the number of samples to process in the sequences
    */
-  void apply(DSPHeaders::BusBuffers& ins, DSPHeaders::BusBuffers& outs, size_t frameCount) const
+  void apply(BusBuffers& ins, BusBuffers& outs, size_t frameCount) const
   {
     assert(lastNumChannels_ == ins.size() && lastNumChannels_ == outs.size());
     vDSP_biquadm(setup_,

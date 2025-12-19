@@ -2,7 +2,9 @@
 
 #import <Accelerate/../Frameworks/vecLib.framework/Headers/vForce.h>
 
+#import "DSPHeaders/ConstMath.hpp"
 #import "DSPHeaders/LowPassFilter.hpp"
+#import "DSPHeaders/Types.hpp"
 
 enum Index { B0 = 0, B1, B2, A1, A2 };
 
@@ -11,12 +13,12 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
 {
   if (lastFrequency_ == frequency && lastResonance_ == resonance && numChannels == lastNumChannels_) return;
 
-  const double frequencyRads = M_PI * frequency * nyquistPeriod;
-  const double r = ::powf(10.0, 0.05 * -resonance);
-  const double k  = 0.5 * r * ::sinf(frequencyRads);
-  const double c1 = (1.0 - k) / (1.0 + k);
-  const double c2 = (1.0 + c1) * ::cosf(frequencyRads);
-  const double c3 = (1.0 + c1 - c2) * 0.25;
+  const double frequencyRads = ConstMath::Constants<double>::PI * frequency * nyquistPeriod;
+  const double r = ::powf(10.0_F, 0.05_F * -resonance);
+  const double k  = 0.5_F * r * ::sin(frequencyRads);
+  const double c1 = (1.0_F - k) / (1.0 + k);
+  const double c2 = (1.0_F + c1) * ::cos(frequencyRads);
+  const double c3 = (1.0_F + c1 - c2) * 0.25_F;
 
   F_.clear();
   F_.reserve(5 * numChannels);
@@ -53,33 +55,31 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
  - parameter x: value to check
  - returns: filtered value or 1.0
  */
-static inline float filterBadValues(double x) {
-  return ::fabs(x) > 1e-15 && ::fabs(x) < 1e15 && x != 0.0 ? x : 1.0;
-}
-
-static inline double squared(double x) { return x * x; }
 
 void
-DSPHeaders::LowPassFilter::magnitudes(double const* frequencies, size_t count, double inverseNyquist, double* magnitudes) const
+DSPHeaders::LowPassFilter::magnitudes(AUValue const* frequencies, size_t count, double inverseNyquist, AUValue* magnitudes) const
 {
-  float scale = M_PI * inverseNyquist;
+  double scale = ConstMath::Constants<double>::PI * inverseNyquist;
+  auto filterBadValues = [](double x) { return (::fabs(x) > 1e-15_F && ::fabs(x) < 1e15_F && x != 0.0_F) ? x : 1.0_F; };
+  auto squared = [](double x) { return x * x; };
+
   while (count-- > 0) {
-    double theta = scale * *frequencies++;
-    double zReal = ::cos(theta);
-    double zImag = ::sin(theta);
+    auto theta = scale * *frequencies++;
+    auto zReal = ::cos(theta);
+    auto zImag = ::sin(theta);
 
-    double zReal2 = squared(zReal);
-    double zImag2 = squared(zImag);
+    auto zReal2 = squared(zReal);
+    auto zImag2 = squared(zImag);
 
-    double numerReal = F_[B0] * (zReal2 - zImag2) + F_[B1] * zReal + F_[B2];
-    double numerImag = 2.0 * F_[B0] * zReal * zImag + F_[B1] * zImag;
-    double numerMag = ::sqrt(squared(numerReal) + squared(numerImag));
+    auto numerReal = F_[B0] * (zReal2 - zImag2) + F_[B1] * zReal + F_[B2];
+    auto numerImag = 2.0 * F_[B0] * zReal * zImag + F_[B1] * zImag;
+    auto numerMag = ::sqrt(squared(numerReal) + squared(numerImag));
 
-    double denomReal = zReal2 - zImag2 + F_[A1] * zReal + F_[A2];
-    double denomImag = 2.0 * zReal * zImag + F_[A1] * zImag;
-    double denomMag = ::sqrt(squared(denomReal) + squared(denomImag));
+    auto denomReal = zReal2 - zImag2 + F_[A1] * zReal + F_[A2];
+    auto denomImag = 2.0 * zReal * zImag + F_[A1] * zImag;
+    auto denomMag = ::sqrt(squared(denomReal) + squared(denomImag));
 
-    double value = numerMag / denomMag;
+    auto value = numerMag / denomMag;
     *magnitudes++ = 20.0 * ::log10(filterBadValues(value));
   }
 }
