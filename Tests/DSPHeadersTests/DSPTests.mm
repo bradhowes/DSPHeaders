@@ -139,12 +139,4 @@ using namespace DSPHeaders;
   XCTAssertEqualWithAccuracy(-0.000487328, w4[3], 1.0E-6);
 }
 
-//- (void)testZZZ {
-//  for (float modulator = -1.0; modulator <= 1.0; modulator += 0.1) {
-//    auto a = DSP::unipolarModulation<float>(DSP::bipolarToUnipolar<float>(modulator), 0.0, 10.0);
-//    auto b = DSP::bipolarModulation<float>(modulator, 0.0, 10.0);
-//    NSLog(@"%f %f", a, b);
-//  }
-//}
-
 @end
