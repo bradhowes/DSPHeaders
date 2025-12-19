@@ -28,6 +28,10 @@ concept SizableType = std::convertible_to<T, std::size_t>;
 template <typename T>
 concept EntityDerivedType = requires { { T::entity_size } -> std::convertible_to<std::size_t>; };
 
+/// Concept that requires the type to be an array of a fixed size and of type 'char'.
+template <typename T>
+concept CharArray = std::is_bounded_array_v<T> && requires(T v) { { v[0] } -> std::same_as<char&>; };
+
 /// Concept that requires the type to support random access indexing. I think this can be improved on.
 template <typename T>
 concept RandomAccessContainer = requires(T v) { { v.at(0) } -> std::convertible_to<typename T::value_type>; };
