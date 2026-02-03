@@ -46,10 +46,9 @@ public:
   void apply(BusBuffers& ins, BusBuffers& outs, size_t frameCount) const
   {
     assert(lastNumChannels_ == ins.size() && lastNumChannels_ == outs.size());
-    vDSP_biquadm(setup_,
-                 (float const* __nonnull* __nonnull)ins.data(), one_,
-                 (float * __nonnull * __nonnull)outs.data(), one_,
-                 vDSP_Length(frameCount));
+    float const* __nonnull* __nonnull input = const_cast<const AUValue**>(ins.data());
+    float* __nonnull* __nonnull output = outs.data();
+    vDSP_biquadm(setup_, input, one_, output, one_, vDSP_Length(frameCount));
   }
 
 private:

@@ -5,7 +5,6 @@ import PackageDescription
 // Set to true to enable unsafe C++ flags -- only to be used for development/debugging
 // NOTE: do NOT commit when set to true or else downstream release builds may break. There is a pre-commit hook
 // `unsafe_flags_check` that can be used to prevent this from happening.
-let useUnsafeFlags = false
 
 let package = Package(
   name: "DSPHeaders",
@@ -37,7 +36,7 @@ let package = Package(
 extension Array where Element == CXXSetting {
   static var cxxSettings: [CXXSetting] {
     let unsafeFlags = [
-      "-O3",
+      "-g",
       "-pedantic",
       "-Wall",
       "-Wassign-enum",
@@ -149,6 +148,6 @@ extension Array where Element == CXXSetting {
       "-Wzero-length-array",
       "-x", "objective-c++"
     ]
-    return useUnsafeFlags ? [.unsafeFlags(unsafeFlags, .when(configuration: .debug))] : []
+    return [.unsafeFlags(unsafeFlags, .when(configuration: .debug))]
   }
 }

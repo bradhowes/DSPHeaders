@@ -14,7 +14,7 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
   if (lastFrequency_ == frequency && lastResonance_ == resonance && numChannels == lastNumChannels_) return;
 
   const double frequencyRads = ConstMath::Constants<double>::PI * frequency * nyquistPeriod;
-  const double r = ::powf(10.0_F, 0.05_F * -resonance);
+  const double r = ::pow(10.0_F, 0.05_F * -resonance);
   const double k  = 0.5_F * r * ::sin(frequencyRads);
   const double c1 = (1.0_F - k) / (1.0 + k);
   const double c2 = (1.0_F + c1) * ::cos(frequencyRads);
@@ -23,7 +23,7 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
   F_.clear();
   F_.reserve(5 * numChannels);
 
-  for (auto channel = 0; channel < numChannels; ++channel) {
+  for (size_t channel = 0; channel < numChannels; ++channel) {
     F_.push_back(c3);
     F_.push_back(c3 + c3);
     F_.push_back(c3);
@@ -33,8 +33,8 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
 
   // As long as we have the same number of channels, we can use Accelerate's function to update the filter.
   if (setup_ != nullptr && numChannels == lastNumChannels_) {
-    float interpolationRate = 0.0001;
-    float interpolationThreshold = 0.00001;
+    float interpolationRate = float(0.0001);
+    float interpolationThreshold = float(0.00001);
     vDSP_biquadm_SetTargetsDouble(setup_, F_.data(), interpolationRate, interpolationThreshold, 0, 0, 1, numChannels);
   }
   else {
@@ -80,6 +80,6 @@ DSPHeaders::LowPassFilter::magnitudes(AUValue const* frequencies, size_t count, 
     auto denomMag = ::sqrt(squared(denomReal) + squared(denomImag));
 
     auto value = numerMag / denomMag;
-    *magnitudes++ = 20.0 * ::log10(filterBadValues(value));
+    *magnitudes++ = AUValue(20.0 * ::log10(filterBadValues(value)));
   }
 }
