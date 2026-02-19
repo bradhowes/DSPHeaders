@@ -75,7 +75,9 @@ public:
    */
   void addMono(AUAudioFrameCount frame, AUValue monoSample) noexcept {
     assert(isMono());
-    buffers_[0][frame] += monoSample;
+    if (buffers_[0] != nullptr) {
+      buffers_[0][frame] += monoSample;
+    }
   }
 
   /**
@@ -87,8 +89,10 @@ public:
    */
   void addStereo(AUAudioFrameCount frame, AUValue leftSample, AUValue rightSample) noexcept {
     assert(isStereo());
-    buffers_[0][frame] += leftSample;
-    buffers_[1][frame] += rightSample;
+    if (buffers_[0] != nullptr && buffers_[1] != nullptr) {
+      buffers_[0][frame] += leftSample;
+      buffers_[1][frame] += rightSample;
+    }
   }
 
   /**
@@ -99,7 +103,9 @@ public:
    */
   void addAll(AUAudioFrameCount frame, AUValue sample) noexcept {
     for (auto& buffer : buffers_) {
-      buffer[frame] += sample;
+      if (buffer != nullptr) {
+        buffer[frame] += sample;
+      }
     }
   }
 
@@ -114,7 +120,9 @@ public:
   void addAlternating(AUAudioFrameCount frame, AUValue evenSample, AUValue oddSample) noexcept {
     size_t size{buffers_.size()};
     for (size_t index = 0; index < size; ++index) {
-      buffers_[index][frame] += (index % 2) ? oddSample : evenSample;
+      if (buffers_[index] != nullptr) {
+        buffers_[index][frame] += (index % 2) ? oddSample : evenSample;
+      }
     }
   }
 
@@ -143,7 +151,9 @@ public:
    */
   void shiftOver(AUAudioFrameCount frames) noexcept {
     for (auto& buffer : buffers_ ) {
-      buffer += frames;
+      if (buffer != nullptr) {
+        buffer += frames;
+      }
     }
   }
 
