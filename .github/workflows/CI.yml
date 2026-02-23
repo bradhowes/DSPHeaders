@@ -17,7 +17,7 @@ jobs:
     - name: Required to prevent the next command from sometimes not working
       run: xcrun simctl list > /dev/null
     - name: Download iOS
-      run: xcodebuild -downloadPlatform iOS -buildVersion 26.2
+      run: xcodebuild -downloadPlatform iOS
     - name: Build, test, and code coverage
       run: make
     - name: Create Coverage Badge
