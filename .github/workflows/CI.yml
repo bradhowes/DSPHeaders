@@ -13,7 +13,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Select Xcode
-      run: ls -l /Applications && sudo xcode-select -s /Applications/Xcode_26.2.0.app
+      run: ls -l /Applications/Xcode* && sudo xcode-select -s /Applications/Xcode_26.2.app
+    - name: Required to prevent the next command from sometimes not working
+      run: xcrun simctl list > /dev/null
+    - name: Download iOS
+      run: xcodebuild -downloadPlatform iOS -buildVersion 26.2
     - name: Build, test, and code coverage
       run: make
     - name: Create Coverage Badge

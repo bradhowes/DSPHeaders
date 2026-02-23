@@ -19,7 +19,10 @@ let package = Package(
       exclude: ["README.md"],
       publicHeadersPath: "include",
       cxxSettings: .cxxSettings,
-      swiftSettings: [.define("APPLICATION_EXTENSION_API_ONLY"), .interoperabilityMode(.Cxx)],
+      swiftSettings: [
+        .define("APPLICATION_EXTENSION_API_ONLY"),
+        .interoperabilityMode(.Cxx)
+      ],
       linkerSettings: [
         .linkedFramework("Accelerate", .none)
       ]
