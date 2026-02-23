@@ -1,4 +1,5 @@
 [![CI][status]][ci]
+[![COV][cov]][ci]
 [![][spiv]][spi]
 [![][spip]][spi]
 [![License: MIT][mit]][license]
@@ -56,6 +57,7 @@ precision.
 
 [ci]: https://github.com/bradhowes/DSPHeaders/actions/workflows/CI.yml
 [status]: https://github.com/bradhowes/DSPHeaders/actions/workflows/CI.yml/badge.svg
+[cov]: https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bradhowes/a2eff986c25d1bd47eda107e4f38cede/raw/DSPHeaders-coverage.json
 [spi]: https://swiftpackageindex.com/bradhowes/DSPHeaders
 [spiv]: https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fbradhowes%2FDSPHeaders%2Fbadge%3Ftype%3Dswift-versions
 [spip]: https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fbradhowes%2FDSPHeaders%2Fbadge%3Ftype%3Dplatforms
