@@ -3,6 +3,7 @@
 #import <Accelerate/../Frameworks/vecLib.framework/Headers/vForce.h>
 
 #import "DSPHeaders/ConstMath.hpp"
+#import "DSPHeaders/DSP.hpp"
 #import "DSPHeaders/LowPassFilter.hpp"
 #import "DSPHeaders/Types.hpp"
 
@@ -11,11 +12,16 @@ enum Index { B0 = 0, B1, B2, A1, A2 };
 void
 DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, double nyquistPeriod, size_t numChannels)
 {
-  if (lastFrequency_ == frequency && lastResonance_ == resonance && numChannels == lastNumChannels_) return;
+  if (lastFrequency_ == frequency &&
+      lastResonance_ == resonance &&
+      numChannels == lastNumChannels_ &&
+      lastNyquistPeriod_ == nyquistPeriod) {
+    return;
+  }
 
   const double frequencyRads = ConstMath::Constants<double>::PI * frequency * nyquistPeriod;
-  const double r = ::pow(10.0_F, 0.05_F * -resonance);
-  const double k  = 0.5_F * r * ::sin(frequencyRads);
+  const double r = DSP::decibelToLinear(resonance);
+  const double k  = ::sin(frequencyRads) / (r * 2.0);
   const double c1 = (1.0_F - k) / (1.0 + k);
   const double c2 = (1.0_F + c1) * ::cos(frequencyRads);
   const double c3 = (1.0_F + c1 - c2) * 0.25_F;

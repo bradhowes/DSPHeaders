@@ -21,6 +21,15 @@ using namespace DSPHeaders;
   // Put teardown code here. This method is called after the invocation of each test method in the class.
 }
 
+- (void)testDecibelsToLinear {
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(96.0), 63095.7344480193, 1.0e-10);
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(40.0), 100.0, 1.0e-10);
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(20.0), 10.0, 1.0e-10);
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(0.0), 1.0, 1.0e-10);
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(-20.0), 0.1, 1.0e-10);
+  XCTAssertEqualWithAccuracy(DSP::decibelToLinear(-40.0), 0.01, 1.0e-10);
+}
+
 - (void)testUnipolarModulation {
   XCTAssertEqual(DSP::unipolarModulation(-3.0, 10.0, 20.0), 10.0);
   XCTAssertEqual(DSP::unipolarModulation(0.0, 10.0, 20.0), 10.0);
@@ -50,46 +59,6 @@ using namespace DSPHeaders;
   XCTAssertEqual(DSP::bipolarToUnipolar(-1.0), 0.0);
   XCTAssertEqual(DSP::bipolarToUnipolar(0.0), 0.5);
   XCTAssertEqual(DSP::bipolarToUnipolar(1.0), 1.0);
-}
-
-- (void)testParabolicSineAccuracy {
-  for (int index = 0; index < 36000.0; ++index) {
-    auto theta = 2.0 * M_PI * index / 36000.0 - M_PI;
-    auto real = std::sin(theta);
-    XCTAssertEqualWithAccuracy(DSP::parabolicSine(theta), real, 0.0011);
-  }
-}
-
-- (void)testParabolicSineSpeed {
-  std::array<double, 360000> thetas;
-  for (long index = 0; index < thetas.size(); ++index) {
-    thetas[index] = 2.0 * M_PI * index / double(thetas.size()) - M_PI;
-  }
-
-  [self measureBlock:^{
-    double sum = 0.0;
-    for (auto loop = 0; loop < 100; ++loop) {
-      for (long index = 0; index < thetas.size(); ++index) {
-        sum += DSP::parabolicSine(thetas[index]);
-      }
-    }
-  }];
-}
-
-- (void)testSinSpeed {
-  std::array<double, 360000> thetas;
-  for (long index = 0; index < thetas.size(); ++index) {
-    thetas[index] = 2.0 * M_PI * index / double(thetas.size()) - M_PI;
-  }
-
-  [self measureBlock:^{
-    double sum = 0.0;
-    for (auto loop = 0; loop < 100; ++loop) {
-      for (int index = 0; index < thetas.size(); ++index) {
-        sum += std::sin(thetas[index]);
-      }
-    }
-  }];
 }
 
 - (void)testInterpolationCubic4thOrderInterpolate {

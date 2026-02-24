@@ -20,8 +20,8 @@ namespace DSPHeaders::Biquad {
 
  This is opposite of the nomenclature found in the equations from Robert Bristow-Johnson
  (http://shepazu.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) that are the basis for FluidSynth's implementation
- of low-pass / high-pass filters, where 'a' coefficients are in the numerator and the 'b' coefficients are in the
- denominator. Both versions eliminate the standalone coefficient in the denominator (b0 above), so there are only two
+ of low-pass / high-pass filters, where 'a' coefficients are in the denominator and the 'b' coefficients are in the
+ numerator. Both versions eliminate the standalone coefficient in the denominator (b0 above), so there are only two
  coefficients in the denominator (b1 and b2), and a0 becomes a gain factor.
 
  Note that in Pirkle there are 'c0' and 'd0' values that the book uses for mixing wet (c0) and dry (d0)
@@ -29,8 +29,8 @@ namespace DSPHeaders::Biquad {
 
  Future work: look into using the Accelerate framework and its Biquad routines:
    https://developer.apple.com/documentation/accelerate/biquadratic-iir-filters
-
  */
+
 template <typename ValueType = AUValue>
 struct Coefficients {
 
@@ -102,7 +102,8 @@ struct Coefficients {
   static Coefficients LPF1(ValueType sampleRate, ValueType frequency) noexcept {
     ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
-    return Coefficients((1.0 - gamma) / 2.0f, (1.0f - gamma) / 2.0f, 0.0f, -gamma, 0.0f);
+    ValueType alpha = (1.0 - gamma) / 2.0f;
+    return Coefficients(alpha, alpha, 0.0f, -gamma, 0.0f);
   }
 
   /**
@@ -115,7 +116,8 @@ struct Coefficients {
   static Coefficients HPF1(ValueType sampleRate, ValueType frequency) noexcept {
     ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
-    return Coefficients((1.0 + gamma) / 2.0f, (1.0f + gamma) / -2.0f, 0.0f, -gamma, 0.0f);
+    ValueType alpha = (1.0 + gamma) / 2.0f;
+    return Coefficients(alpha, -alpha, 0.0f, -gamma, 0.0f);
   }
 
   /**
@@ -123,14 +125,14 @@ struct Coefficients {
 
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
-   @param resonance the filter resonance parameter (Q)
+   @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
   static Coefficients LPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
-    ValueType d = 1.0f / resonance / 2.0f;
-    ValueType sinTheta = d * std::sin(theta);
-    ValueType beta = 0.5f * (1.0f - sinTheta) / (1.0f + sinTheta);
+    ValueType d = 1.0f / (resonance * 2.0f);
+    ValueType dsinTheta = d * std::sin(theta);
+    ValueType beta = 0.5f * (1.0f - dsinTheta) / (1.0f + dsinTheta);
     ValueType gamma = (0.5f + beta) * std::cos(theta);
     ValueType alpha = (0.5f + beta - gamma) / 2.0f;
     return Coefficients(alpha, 2.0f * alpha, alpha, -2.0f * gamma, 2.0f * beta);
@@ -141,16 +143,17 @@ struct Coefficients {
 
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
-   @param resonance the filter resonance parameter (Q)
+   @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
   static Coefficients HPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
-    ValueType d = 1.0f / resonance;
-    ValueType beta = 0.5f * (1.0f - d / 2.0f * std::sin(theta)) / (1.0f + d / 2.0f * std::sin(theta));
+    ValueType d = 1.0f / (resonance * 2.0f);
+    ValueType dsinTheta = d * std::sin(theta);
+    ValueType beta = 0.5f * (1.0f - dsinTheta) / (1.0f + dsinTheta);
     ValueType gamma = (0.5f + beta) * std::cos(theta);
-    return Coefficients((0.5f + beta + gamma) / 2.0f, -1.0f * (0.5f + beta + gamma), (0.5f + beta + gamma) / 2.0f,
-                        -2.0f * gamma, 2.0f * beta);
+    ValueType alpha = (0.5f + beta + gamma) / 2.0f;
+    return Coefficients(alpha, -2.0f * alpha, alpha, -2.0f * gamma, 2.0f * beta);
   }
 
   /**
@@ -171,7 +174,7 @@ struct Coefficients {
 
    @param sampleRate the sample rate being used
    @param frequency the cutoff frequency of the filter
-   @param resonance the filter resonance parameter (Q)
+   @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
   static Coefficients APF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {

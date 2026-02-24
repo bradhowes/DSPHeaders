@@ -12,7 +12,9 @@
 namespace DSPHeaders {
 
 /**
- Implementation of a low-pass filter that uses Apple's Accelerate framework to do the biquad calculations.
+ Implementation of a low-pass filter that uses Apple's Accelerate framework to do the biquad calculations. Suitable for
+ multi-channel processing of a sequence of samples. For sample-based filter, use the ``Biquad::Filter`` with a suitable
+ transform and use the ``Coefficients::LPF2`` to initialize the filter parameters.
  */
 class LowPassFilter {
 public:
@@ -20,8 +22,8 @@ public:
    Calculate the parameters for a low-pass filter with the given frequency and resonance values.
 
    @param frequency the cutoff frequency for the low-pass filter
-   @param resonance the resonance setting for the low-pass filter
-   @param nyquistPeriod should be equivalent to 1.0 / (0.5 * sampleRate)
+   @param resonance the resonance setting for the low-pass filter in range -20dB and +40dB
+   @param nyquistPeriod should be equivalent to 2.0 / sampleRate
    @param numChannels number of channels the filter will process
    */
   void calculateParams(double frequency, double resonance, double nyquistPeriod, size_t numChannels);
@@ -58,6 +60,7 @@ private:
 
   double lastFrequency_{-1.0};
   double lastResonance_{1E10};
+  double lastNyquistPeriod_{0};
   size_t lastNumChannels_{0};
 };
 

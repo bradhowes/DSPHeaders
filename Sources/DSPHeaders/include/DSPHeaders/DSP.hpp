@@ -5,10 +5,14 @@
 #import <algorithm>
 #import <array>
 #import <cassert>
+#import <cmath>
 
 #import "DSPHeaders/ConstMath.hpp"
 
 namespace DSPHeaders::DSP {
+
+template <typename ValueType>
+constexpr auto decibelToLinear(ValueType decibels) noexcept { return ::pow(10.0, decibels / 20.0); }
 
 /**
  Translate value in range [0, +1] into one in range [-1, +1]
@@ -53,28 +57,6 @@ template <typename ValueType>
 constexpr auto bipolarModulation(ValueType value, ValueType minValue, ValueType maxValue) noexcept {
   auto mid = (maxValue - minValue) * 0.5;
   return std::clamp<ValueType>(value, -1.0, 1.0) * mid + mid + minValue;
-}
-
-/**
- Estimate sin() value from a radian angle between -PI and PI.
- Derived from code in "Designing Audio Effect Plugins in C++" by Will C. Pirkle (2019)
- As can be seen in the unit test `testParabolicSineAccuracy`, the worst-case deviation from
- std::sin is ~0.0011.
-
- However, according to unit tests on modern Apple devices, std::sin is much faster than the parabolic calculation below
- so this is not used.
-
- @param angle value between -PI and PI
- @returns approximate sin value
- */
-template <typename ValueType>
-constexpr auto parabolicSine(ValueType angle) noexcept {
-  constexpr ValueType B{ 4.0 / ConstMath::Constants<ValueType>::PI};
-  constexpr ValueType C{-4.0 / (ConstMath::Constants<ValueType>::PI * ConstMath::Constants<ValueType>::PI)};
-  constexpr ValueType P{0.225};
-  const ValueType y{B * angle + C * angle * ConstMath::abs<>(angle)};
-  const ValueType Py{P * y};
-  return Py * ConstMath::abs<>(y) - Py + y;
 }
 
 namespace Interpolation {
