@@ -75,7 +75,7 @@ public:
    */
   void addMono(AUAudioFrameCount frame, AUValue monoSample) noexcept {
     assert(isMono());
-    if (buffers_[0] != nullptr) {
+    if (buffers_[0] != nullptr) [[likely]] {
       buffers_[0][frame] += monoSample;
     }
   }
@@ -89,7 +89,7 @@ public:
    */
   void addStereo(AUAudioFrameCount frame, AUValue leftSample, AUValue rightSample) noexcept {
     assert(isStereo());
-    if (buffers_[0] != nullptr && buffers_[1] != nullptr) {
+    if (buffers_[0] != nullptr && buffers_[1] != nullptr) [[likely]] {
       buffers_[0][frame] += leftSample;
       buffers_[1][frame] += rightSample;
     }

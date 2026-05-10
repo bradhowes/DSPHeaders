@@ -34,7 +34,7 @@ public:
   /**
    Cancel any active ramping.
 
-   Note: this should only be invoked when the render thread is not running.
+   Note: this should only be invoked from the render thread or when the render thread is not running.
    */
   void stopRamping() noexcept {
     if (rampRemaining_ > 0) {

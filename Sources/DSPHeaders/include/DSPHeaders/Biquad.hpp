@@ -196,7 +196,7 @@ struct Coefficients {
    */
   Coefficients rampFactor(const Coefficients& goal, size_t sampleCount) const noexcept
   {
-    ValueType factor = 1.0f / sampleCount;
+    ValueType factor = 1.0f / ValueType(sampleCount);
     return Coefficients((goal.a0 - a0) * factor,
                         (goal.a1 - a1) * factor,
                         (goal.a2 - a2) * factor,

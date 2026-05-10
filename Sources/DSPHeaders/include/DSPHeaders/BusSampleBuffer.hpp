@@ -38,7 +38,7 @@ struct BusSampleBuffer {
    Forget any allocated buffer.
    */
   void release() {
-    if (buffer_ == nullptr) {
+    if (buffer_ == nullptr) [[unlikely]] {
       throw std::runtime_error("buffer_ == nullptr");
     }
 

@@ -79,8 +79,9 @@ struct Constants {
  */
 template <typename ValueType, std::size_t N, typename Generator>
 constexpr std::array<ValueType, N> make_array(Generator gen) noexcept {
-  std::array<ValueType, N> table = {};
-  for (std::size_t i = 0; i != N; ++i) table[i] = gen(i);
+  std::array<ValueType, N> table{};
+  for (std::size_t index = 0; index != N; ++index)
+    table[index] = gen(index);
   return table;
 }
 
@@ -264,7 +265,7 @@ constexpr ValueType sin(ValueType x) {
 template <typename ValueType, typename Integer = long long>
 constexpr Integer floor(ValueType x) {
   if constexpr (std::is_integral_v<ValueType>) { return static_cast<Integer>(x); }
-  return static_cast<Integer>(x) - (static_cast<Integer>(x) > x);
+  return static_cast<Integer>(x) - (ValueType(static_cast<Integer>(x)) > x);
 }
 
 /**
@@ -318,7 +319,7 @@ constexpr ValueType ipow(ValueType a, Integer n) {
  */
 template <typename ValueType>
 constexpr ValueType exp(ValueType x) {
-  return ipow(Constants<ValueType>::e, floor(x)) * detail::exp_frac(x - floor(x));
+  return ipow(Constants<ValueType>::e, floor(x)) * detail::exp_frac(x - ValueType(floor(x)));
 }
 
 /**

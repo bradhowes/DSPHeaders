@@ -33,7 +33,16 @@ const typename T::value_type& checkedVectorIndexing(const T& container, size_t i
 #endif
 }
 
-/// Allow for safe indexing into a `vector` when enabled with `CHECKED_VECTOR_INDEXING` set to `1`.
+template <RandomAccessContainer T>
+typename T::value_type& checkedVectorIndexing(T& container, size_t index) noexcept
+{
+#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
+  return container.at(index);
+#else
+  return container[index];
+#endif
+}
+
 template <RandomAccessContainer T, SizableType S>
 const typename T::value_type& checkedVectorIndexing(const T& container, S index) noexcept
 {

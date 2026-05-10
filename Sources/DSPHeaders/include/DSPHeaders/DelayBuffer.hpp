@@ -15,7 +15,7 @@ namespace DSPHeaders {
  being used to generate the sample value. This only works as long as each sample is written at a fixed sample rate so
  that a delay in seconds can be calculated as N number of samples in the past.
 
- This buffer is not thread-safe. It is to be used in a the rendering flow of one channel of audio.
+ This buffer is not thread-safe. It is to be used in the rendering flow of one channel of audio.
  */
 template <typename ValueType>
 class DelayBuffer {
