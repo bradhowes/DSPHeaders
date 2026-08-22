@@ -2,6 +2,7 @@
 [![COV][cov]][ci]
 [![][spiv]][spi]
 [![][spip]][spi]
+[![][cf1]][cf2]
 [![License: MIT][mit]][license]
 
 # Overview
@@ -63,3 +64,5 @@ precision.
 [spip]: https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fbradhowes%2FDSPHeaders%2Fbadge%3Ftype%3Dplatforms
 [mit]: https://img.shields.io/badge/License-MIT-A31F34.svg
 [license]: https://opensource.org/licenses/MIT
+[cf1]: https://www.codefactor.io/repository/github/bradhowes/dspheaders/badge
+[cf2]: https://www.codefactor.io/repository/github/bradhowes/dspheaders
