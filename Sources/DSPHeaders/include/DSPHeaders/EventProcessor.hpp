@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -185,7 +185,6 @@ public:
     outputFacets_[outputBusIndex].setFrameCount(frameCount);
 
     if (pullInputBlock != nullptr) {
-
       // Pull input samples from upstream. If the output buffer we are given has no storage assigned to it, then we
       // will use our own and perform in-place rendering of the samples. This is detected and handled in the
       // `assignBufferList` method.
@@ -218,7 +217,6 @@ public:
   AUAudioFrameCount rampRemaining() const noexcept { return rampRemaining_; }
 
 protected:
-
   /**
    Set the rendering state of the host.
 
@@ -284,7 +282,6 @@ protected:
   os_log_t _Nonnull log_;
 
 private:
-
   bool setPendingParameterValue(AUParameterAddress address, AUValue value) noexcept {
     os_log_info(log_, "setPendingParameterValue - %llu %f", address, value);
     if constexpr (HasSetPendingParameterValue<KernelType>) return derived_.doSetPendingParameterValue(address, value);
@@ -361,7 +358,6 @@ private:
     // let the kernel render into our buffers.
     outputFacet.setOffset(processed);
     if (isBypassed()) {
-
       // If we have input samples from an upstream node, either use the sample buffers directly or copy samples over
       // to the output buffer. Otherwise, we have already zero'd out the output buffer, so we are done.
       if (inputFacet_.isLinked()) {
@@ -387,7 +383,6 @@ private:
     os_log_info(log_, "%lu processingEventsUntil BEGIN - %p", renderCounter_, event);
     while (event != nullptr && event->head.eventSampleTime <= now) {
       switch (event->head.eventType) {
-
         case AURenderEventParameter:
           os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress, event->parameter.value);
           processEventParameterChange(event->parameter, treeBasedRampDuration_);
