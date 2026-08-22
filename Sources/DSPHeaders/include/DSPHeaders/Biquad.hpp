@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -33,7 +33,6 @@ namespace DSPHeaders::Biquad {
 
 template <typename ValueType = AUValue>
 struct Coefficients {
-
   /**
    Constructor to set all coefficients at once
 
@@ -247,7 +246,6 @@ namespace Transform {
  */
 template <typename ValueType = AUValue>
 struct Base {
-
   /**
    If value is smaller than a noise floor value, force it to be zero. 16-bit audio provides ~96dB dynamic range where
    the least-significant bit adds ~1.0e-5 change in amplitude. So, we cannot really do anything with values below this.
@@ -270,7 +268,6 @@ struct Base {
  */
 template <typename ValueType = AUValue>
 struct Direct : public Base<ValueType> {
-
   /**
    Transform a value
 
@@ -308,7 +305,6 @@ struct Direct : public Base<ValueType> {
 /// Transform for the 'canonical' biquad structure (min state)
 template <typename ValueType = AUValue>
 struct Canonical : Base<ValueType> {
-
   /**
    Transform a value
 
@@ -338,7 +334,6 @@ struct Canonical : Base<ValueType> {
 /// Transform for the transposed 'direct' biquad structure
 template <typename ValueType = AUValue>
 struct DirectTranspose : Base<ValueType> {
-
   /**
    Transform a value
 
@@ -370,9 +365,8 @@ struct DirectTranspose : Base<ValueType> {
 /// Transform for the transposed 'canonical' biquad structure (min state)
 template <typename ValueType = AUValue>
 struct CanonicalTranspose : Base<ValueType> {
-
   /**
-   Transform a value
+     Transform a value
 
    @param input the input value to transform
    @param state the filter state work with
@@ -479,7 +473,6 @@ public:
   ValueType storageComponent() const noexcept { return Transformer::storageComponent(state_, ramper_.coefficients()); }
 
 private:
-
   /**
    Adapter for a Biquad filter that changes it over time (samples) rather than abruptly and possibly with audio
    artifacts.
