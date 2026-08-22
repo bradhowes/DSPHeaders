@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -16,7 +16,6 @@ namespace DSPHeaders {
  All channel buffers will hold the same number of frames / samples.
  */
 struct BusSampleBuffer {
-
   /**
    Initialize new instance that has no capacity.
    */

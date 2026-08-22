@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -31,7 +31,6 @@ namespace DSPHeaders {
 template <typename ValueType = AUValue>
 class LFO {
 public:
-
   /**
    Create a new instance.
 

@@ -1,4 +1,4 @@
-// Copyright © 2024-2025 Brad Howes. All rights reserved.
+// Copyright © 2024-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -13,7 +13,6 @@ namespace DSPHeaders {
 template<class T>
 class IntrusiveReferenceCounted {
 public:
-
   /// Construct instance with initial reference count
   IntrusiveReferenceCounted() : intrusiveReferenceCounter_(1) {}
 

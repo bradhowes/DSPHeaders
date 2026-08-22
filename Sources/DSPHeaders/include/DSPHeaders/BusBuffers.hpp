@@ -1,4 +1,4 @@
-// Copyright © 2022-2025 Brad Howes. All rights reserved.
+// Copyright © 2022-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -23,7 +23,6 @@ namespace DSPHeaders {
  */
 class BusBuffers {
 public:
-
   /**
    Construct a new instance using the given collection of AUValue pointers.
 

@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -20,7 +20,6 @@ namespace DSPHeaders {
 template <typename ValueType>
 class DelayBuffer {
 public:
-
   /// Types of interpolation that can be used to generate sample values using floating-point indices.
   enum struct Interpolator {
     linear,

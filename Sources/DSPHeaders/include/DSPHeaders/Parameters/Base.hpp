@@ -1,4 +1,4 @@
-// Copyright © 2022-2025 Brad Howes. All rights reserved.
+// Copyright © 2022-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -116,7 +116,6 @@ public:
   AUValue frameValue() const noexcept { return value_; }
 
 protected:
-
   /**
    Construct a new parameter.
 
@@ -134,7 +133,6 @@ protected:
   }
 
 private:
-
   void startRamp(AUValue pendingValue, AUAudioFrameCount duration) noexcept {
     if (canRamp_ && duration > 1) {
       rampDelta_ = (pendingValue - value_) / AUValue(duration);

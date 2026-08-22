@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -23,7 +23,6 @@ namespace DSPHeaders {
  Supports in-place rendering where the input buffer is used for rendering and is overwritten with output samples.
  */
 struct BusBufferFacet {
-
   /**
    Construct a new instance.
    */
@@ -56,7 +55,6 @@ struct BusBufferFacet {
   void assignBufferList(AudioBufferList* bufferList, AudioBufferList* inPlaceSource = nullptr) {
     bufferList_ = bufferList;
     if (bufferList->mBuffers[0].mData == nullptr) {
-
       // The given bufferList does not have space to use -- attempt to perform in-place rendering.
       if (inPlaceSource == nullptr) {
         throw std::runtime_error("inPlaceSource == nullptr");
@@ -184,7 +182,6 @@ struct BusBufferFacet {
   }
 
 private:
-
   AUValue* getBufferPointer(size_t channel, AUAudioFrameCount offset) const noexcept {
     return static_cast<AUValue*>(bufferList_->mBuffers[channel].mData) + offset;
   }

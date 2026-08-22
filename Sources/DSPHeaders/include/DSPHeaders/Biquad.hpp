@@ -478,7 +478,6 @@ private:
    artifacts.
    */
   struct Ramper {
-
     Ramper() = default;
 
     Ramper(const CoefficientsType& coefficients) noexcept : coefficients_{coefficients} {}
