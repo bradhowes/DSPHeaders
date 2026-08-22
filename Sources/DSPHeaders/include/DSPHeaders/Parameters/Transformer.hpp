@@ -1,4 +1,4 @@
-// Copyright © 2022-2025 Brad Howes. All rights reserved.
+// Copyright © 2022-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -14,7 +14,6 @@ namespace DSPHeaders::Parameters {
  Collecton of AUValue transforms that are used to manage values in parameters.
  */
 struct Transformer {
-
   /**
    A no-op transformer
 

@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -22,7 +22,6 @@ namespace DSPHeaders {
 template <typename ValueType = AUValue>
 class PhaseShifter {
 public:
-
   /// Definition of a frequency band with min and max values
   struct Band {
     ValueType frequencyMin;
@@ -96,7 +95,6 @@ public:
    @returns filtered audio output
    */
   ValueType process(ValueType modulation, ValueType input) noexcept {
-
     // With samplesPerFilterUpdate_ == 1, this replicates the phaser processing described in
     // "Designing Audio Effect Plugins in C++" by Will C. Pirkle (2019).
     //

@@ -1,4 +1,4 @@
-// Copyright © 2024-2025 Brad Howes. All rights reserved.
+// Copyright © 2024-2026 Brad Howes. All rights reserved.
 
 #import <type_traits>
 
@@ -74,7 +74,6 @@ class EnumIndexableValueArray : public std::array<ElementType, Size>
   using super = std::array<ElementType, Size>;
 
 public:
-
   /**
    Set all values in the array to the default value for the template type.
    */

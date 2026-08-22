@@ -1,4 +1,4 @@
-// Copyright © 2021-2025 Brad Howes. All rights reserved.
+// Copyright © 2021-2026 Brad Howes. All rights reserved.
 
 #pragma once
 
@@ -20,7 +20,6 @@ namespace DSPHeaders {
 template <typename ValueType = AUValue>
 class PhaseIncrement {
 public:
-
   /**
    Create a new instance. For each frame of the render, the LFO changes by frequency / sampleRate which is
    usually fixed, but when the frequency parameter changes, it will be ramped so that it changes over N
@@ -50,7 +49,6 @@ public:
   }
 
 private:
-
   ValueType updatedIncrement(ValueType frequency) noexcept {
     cachedFrequency_ = frequency;
     return increment_ = frequency / sampleRate_;
