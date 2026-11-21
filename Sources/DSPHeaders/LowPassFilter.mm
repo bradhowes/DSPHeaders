@@ -57,6 +57,7 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
 
   lastFrequency_ = frequency;
   lastResonance_ = resonance;
+  lastNyquistPeriod_ = nyquistPeriod;
   lastNumChannels_ = numChannels;
 }
 

@@ -96,6 +96,7 @@ using namespace DSPHeaders;
   LowPassFilter filter;
   double nyquistPeriod = 1.0 / (44100.0 / 2);
   filter.calculateParams(8000.0, 0.5, nyquistPeriod, 2);
+  filter.calculateParams(8000.0, 0.5, nyquistPeriod, 2);
   filter.calculateParams(8000.0, 0.6, nyquistPeriod, 2);
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 2);
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 2);

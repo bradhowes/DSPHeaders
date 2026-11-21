@@ -50,13 +50,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `PhaseShifter` now stores its six-element `FrequencyBands` by value. `testConstructionFromTemporaryFrequencyBands` verifies construction from a temporary band collection.
 
-6. `LowPassFilter` does not update its Nyquist-period cache key.
+6. ~~`LowPassFilter` does not update its Nyquist-period cache key.~~ **Fixed 2026-11-21.**
 
    `lastNyquistPeriod_` is checked by `calculateParams` but never assigned after recalculation. The early-return cache therefore cannot work for a nonzero Nyquist period.
 
    Locations: `Sources/DSPHeaders/LowPassFilter.mm:15`, `Sources/DSPHeaders/LowPassFilter.mm:53`
 
-   Recommendation: assign `lastNyquistPeriod_ = nyquistPeriod` with the other cache fields.
+   Resolution: `calculateParams` now records `lastNyquistPeriod_` with the other cache fields. `testCalculateParams` exercises a repeated, identical configuration.
 
 ### Medium
 
