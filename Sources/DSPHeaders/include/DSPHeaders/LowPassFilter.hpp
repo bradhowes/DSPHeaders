@@ -18,6 +18,14 @@ namespace DSPHeaders {
  */
 class LowPassFilter {
 public:
+  LowPassFilter() = default;
+  ~LowPassFilter() noexcept;
+
+  LowPassFilter(const LowPassFilter&) = delete;
+  LowPassFilter(LowPassFilter&&) = delete;
+  LowPassFilter& operator=(const LowPassFilter&) = delete;
+  LowPassFilter& operator=(LowPassFilter&&) = delete;
+
   /**
    Calculate the parameters for a low-pass filter with the given frequency and resonance values.
 

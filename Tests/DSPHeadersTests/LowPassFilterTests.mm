@@ -1,6 +1,7 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <type_traits>
 #import <vector>
 
 #import "DSPHeaders/LowPassFilter.hpp"
@@ -99,6 +100,13 @@ using namespace DSPHeaders;
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 2);
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 2);
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 1);
+}
+
+- (void)testExclusiveSetupOwnership {
+  XCTAssertFalse((std::is_copy_constructible_v<LowPassFilter>));
+  XCTAssertFalse((std::is_copy_assignable_v<LowPassFilter>));
+  XCTAssertFalse((std::is_move_constructible_v<LowPassFilter>));
+  XCTAssertFalse((std::is_move_assignable_v<LowPassFilter>));
 }
 
 @end

@@ -34,13 +34,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: the cached frequency and increment now initialize to zero. `testInitialZeroFrequency` verifies the first read is well-defined when the initial frequency is zero.
 
-4. `LowPassFilter` leaks its Accelerate setup and has undefined ownership semantics.
+4. ~~`LowPassFilter` leaks its Accelerate setup and has undefined ownership semantics.~~ **Fixed 2026-11-21.**
 
    A setup returned by `vDSP_biquadm_CreateSetup` is destroyed only when replacing it with another setup. There is no destructor for the final setup. Implicit copying also duplicates the raw handle, so merely adding a destructor would introduce double-destruction.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/LowPassFilter.hpp:58`, `Sources/DSPHeaders/LowPassFilter.mm:50`
 
-   Recommendation: use an RAII owner, destroy the setup in its destructor, and either implement correct copy/move operations or delete copying.
+   Resolution: `LowPassFilter` now destroys its setup in a noexcept destructor and explicitly disallows copying and moving. `testExclusiveSetupOwnership` verifies the ownership constraints.
 
 5. `PhaseShifter` can retain a dangling frequency-band reference.
 

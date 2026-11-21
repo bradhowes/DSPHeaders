@@ -9,6 +9,11 @@
 
 enum Index { B0 = 0, B1, B2, A1, A2 };
 
+DSPHeaders::LowPassFilter::~LowPassFilter() noexcept
+{
+  if (setup_ != nullptr) vDSP_biquadm_DestroySetup(setup_);
+}
+
 void
 DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, double nyquistPeriod, size_t numChannels)
 {
