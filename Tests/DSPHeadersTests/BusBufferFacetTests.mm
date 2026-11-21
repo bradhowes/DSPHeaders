@@ -1,6 +1,8 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <algorithm>
+#import <cstddef>
 #import <vector>
 
 #import "DSPHeaders/EventProcessor.hpp"
@@ -14,6 +16,28 @@ using namespace DSPHeaders;
 static AVAudioFormat* monoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:1];
 static AVAudioFormat* stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
 static AUAudioFrameCount maxFrames = 100;
+
+/// Storage for a hand-built AudioBufferList with a variable number of buffers.
+struct TestBufferList {
+  explicit TestBufferList(UInt32 numberBuffers)
+  : storage_((offsetof(AudioBufferList, mBuffers) + std::max(numberBuffers, UInt32{1}) * sizeof(AudioBuffer) +
+              sizeof(std::max_align_t) - 1) / sizeof(std::max_align_t)) {
+    list()->mNumberBuffers = numberBuffers;
+    for (UInt32 channel = 0; channel < numberBuffers; ++channel) {
+      list()->mBuffers[channel] = AudioBuffer{1, 0, nullptr};
+    }
+  }
+
+  AudioBufferList* list() noexcept { return reinterpret_cast<AudioBufferList*>(storage_.data()); }
+
+  void setData(UInt32 channel, float* data) noexcept {
+    list()->mBuffers[channel].mData = data;
+    list()->mBuffers[channel].mDataByteSize = data == nullptr ? 0 : UInt32(maxFrames * sizeof(float));
+  }
+
+private:
+  std::vector<std::max_align_t> storage_;
+};
 
 @implementation BufferFacetTests
 
@@ -62,6 +86,67 @@ static AUAudioFrameCount maxFrames = 100;
 
   facet.setChannelCount(1);
   XCTAssertThrows(facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
+}
+
+- (void)testInPlaceRendering {
+  std::vector<float> left(maxFrames), right(maxFrames);
+  TestBufferList source{2};
+  source.setData(0, left.data());
+  source.setData(1, right.data());
+  TestBufferList output{2};
+
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  XCTAssertNoThrow(facet.assignBufferList(output.list(), source.list()));
+  XCTAssertEqual(left.data(), output.list()->mBuffers[0].mData);
+  XCTAssertEqual(right.data(), output.list()->mBuffers[1].mData);
+  BusBuffers bb{facet.busBuffers()};
+  XCTAssertTrue(bb.isStereo());
+}
+
+- (void)testPartiallyPopulatedBufferList {
+  std::vector<float> left(maxFrames), right(maxFrames);
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+
+  // Only the first channel has storage
+  TestBufferList firstOnly{2};
+  firstOnly.setData(0, left.data());
+  XCTAssertThrows(facet.assignBufferList(firstOnly.list()));
+  XCTAssertFalse(facet.isLinked());
+
+  // Only the second channel has storage, so in-place rendering would overwrite it
+  TestBufferList secondOnly{2};
+  secondOnly.setData(1, right.data());
+  TestBufferList source{2};
+  source.setData(0, left.data());
+  source.setData(1, right.data());
+  XCTAssertThrows(facet.assignBufferList(secondOnly.list(), source.list()));
+  XCTAssertFalse(facet.isLinked());
+  XCTAssertEqual(nullptr, secondOnly.list()->mBuffers[0].mData);
+}
+
+- (void)testInvalidInPlaceSource {
+  std::vector<float> left(maxFrames);
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  TestBufferList output{2};
+
+  XCTAssertThrows(facet.assignBufferList(output.list()));
+
+  // Source has fewer buffers than the output
+  TestBufferList monoSource{1};
+  monoSource.setData(0, left.data());
+  XCTAssertThrows(facet.assignBufferList(output.list(), monoSource.list()));
+
+  // Source is missing storage for a channel
+  TestBufferList partialSource{2};
+  partialSource.setData(0, left.data());
+  XCTAssertThrows(facet.assignBufferList(output.list(), partialSource.list()));
+
+  XCTAssertFalse(facet.isLinked());
+  XCTAssertEqual(nullptr, output.list()->mBuffers[0].mData);
+  XCTAssertEqual(nullptr, output.list()->mBuffers[1].mData);
 }
 
 - (void)testFrameCount {

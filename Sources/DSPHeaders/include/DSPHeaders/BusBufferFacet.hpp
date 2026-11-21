@@ -46,29 +46,51 @@ struct BusBufferFacet {
    - bufferList has non-nullptr mData values -- use it as-is
    - bufferList has nullptr mData values && inPlaceSource != nullptr -- use the inPlaceSource mData elements
 
-   Note that this method will throw an exception if the channel count of either `bufferList` does not match the expected
-   channel count.
+   Note that this method will throw an exception if the channel count of either `bufferList` or `inPlaceSource` does not
+   match the expected channel count, if `bufferList` has a mix of nullptr and non-nullptr mData values, or if a buffer
+   that would be used for storage has a nullptr mData value. All validation takes place before any state is changed, so
+   on failure the facet and `bufferList` are left as they were.
 
    @param bufferList the collection of buffers to use
    @param inPlaceSource if not nullptr, use their mData elements for storage
    */
   void assignBufferList(AudioBufferList* bufferList, AudioBufferList* inPlaceSource = nullptr) {
-    bufferList_ = bufferList;
-    if (bufferList->mBuffers[0].mData == nullptr) {
+    if (bufferList == nullptr) [[unlikely]] {
+      throw std::runtime_error("bufferList == nullptr");
+    }
+
+    size_t numBuffers = bufferList->mNumberBuffers;
+    if (numBuffers != pointers_.size()) [[unlikely]] {
+      throw std::runtime_error("numBuffers != pointers_.size()");
+    }
+
+    bool inPlace = numBuffers > 0 && bufferList->mBuffers[0].mData == nullptr;
+    if (inPlace) {
       // The given bufferList does not have space to use -- attempt to perform in-place rendering.
-      if (inPlaceSource == nullptr) {
+      if (inPlaceSource == nullptr) [[unlikely]] {
         throw std::runtime_error("inPlaceSource == nullptr");
       }
-      for (UInt32 channel = 0; channel < bufferList->mNumberBuffers; ++channel) {
+      if (inPlaceSource->mNumberBuffers != numBuffers) [[unlikely]] {
+        throw std::runtime_error("inPlaceSource->mNumberBuffers != numBuffers");
+      }
+      if (!allBuffersMatch(inPlaceSource, true)) [[unlikely]] {
+        throw std::runtime_error("inPlaceSource has nullptr mData");
+      }
+    }
+
+    // Every buffer in `bufferList` must agree with the first one: all nullptr for in-place rendering, otherwise all
+    // non-nullptr.
+    if (!allBuffersMatch(bufferList, !inPlace)) [[unlikely]] {
+      throw std::runtime_error("bufferList is partially populated");
+    }
+
+    if (inPlace) {
+      for (UInt32 channel = 0; channel < numBuffers; ++channel) {
         bufferList->mBuffers[channel].mData = inPlaceSource->mBuffers[channel].mData;
       }
     }
 
-    size_t numBuffers = bufferList_->mNumberBuffers;
-    if (numBuffers != pointers_.size()) {
-      throw std::runtime_error("numBuffers != pointers_.size()");
-    }
-
+    bufferList_ = bufferList;
     setOffset(0);
   }
 
@@ -184,6 +206,22 @@ struct BusBufferFacet {
 private:
   AUValue* getBufferPointer(size_t channel, AUAudioFrameCount offset) const noexcept {
     return static_cast<AUValue*>(bufferList_->mBuffers[channel].mData) + offset;
+  }
+
+  /**
+   Check that every buffer in a list agrees on whether it has storage.
+
+   @param bufferList the collection of buffers to check
+   @param hasData true if every mData value must be non-nullptr, false if every mData value must be nullptr
+   @returns true if every buffer matches `hasData`
+   */
+  static bool allBuffersMatch(const AudioBufferList* bufferList, bool hasData) noexcept {
+    for (UInt32 channel = 0; channel < bufferList->mNumberBuffers; ++channel) {
+      if ((bufferList->mBuffers[channel].mData != nullptr) != hasData) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void validateBufferList() const {

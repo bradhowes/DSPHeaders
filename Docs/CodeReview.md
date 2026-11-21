@@ -68,13 +68,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: phase normalization now handles negative, multi-cycle, and non-finite inputs; normal single-cycle increments retain a fast path. Invalid waveform values now return a sinusoid generator after the debug assertion. `testPhaseNormalization` covers negative, multi-cycle, non-finite, and high-frequency phase updates.
 
-8. `BusBufferFacet::assignBufferList` assumes every channel is valid when the first one is.
+8. ~~`BusBufferFacet::assignBufferList` assumes every channel is valid when the first one is.~~ **Fixed 2026-11-21.**
 
    The method checks only `mBuffers[0].mData`, then later accesses every channel's pointer. A partially populated buffer list can produce invalid pointers. When using `inPlaceSource`, it also indexes it without first verifying a matching number of buffers.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/BusBufferFacet.hpp:55`
 
-   Recommendation: validate buffer counts and data pointers for every channel before installing the list.
+   Resolution: `assignBufferList` now validates everything before changing any state. The buffer list must match the expected channel count, and its data pointers must be either all non-null or all null. For in-place rendering, the source must have a matching buffer count and non-null data for every channel. `testInPlaceRendering`, `testPartiallyPopulatedBufferList`, and `testInvalidInPlaceSource` cover these cases.
 
 9. The intrusive reference count is not safe for concurrent retain and release operations.
 
