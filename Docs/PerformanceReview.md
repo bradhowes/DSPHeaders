@@ -100,13 +100,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `BusBuffers` gains `channel(index, frameCount)`, which returns a `std::span<AUValue>` over one channel's samples (empty if the channel has no buffer), and `channels()`, which returns the channel pointers as a span. Kernels call these once per render block and loop over plain spans, with no per-sample indirection or null checks; the class comment shows the pattern. `addAlternating` now walks channels in even/odd pairs instead of computing `index % 2` per channel. The existing per-sample methods are otherwise unchanged, so current kernels keep working, and the speedup applies as kernels adopt the span accessors. `testChannelSpans` covers the accessors, including a channel without a buffer, and `testAddAlternatingChannelCounts` covers one to five channels with a missing buffer.
 
-10. `processAndRender` has small per-block overhead.
+10. ~~`processAndRender` has small per-block overhead.~~ **Fixed 2026-11-21.**
 
     The frame count is written to the buffers three times per block, and `checkForParameterValueChanges` walks an `unordered_map` every block.
 
     Locations: `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:184`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:267`
 
     Recommendation: set the frame count once, and iterate a `std::vector` of registered parameters while keeping the map for address lookups.
+
+    Resolution: the `inputFacet_.setFrameCount` call is removed. Both facets refer to the same `output` buffer list, and `pullInput` sets the frame count before pulling, so the frame count is now written once per block without upstream input and twice with it. The write on the output facet stays because `pullInput` checks the buffer size before writing it, and removing it would change that check. `EventProcessor` now also keeps `parameterList_`, a vector of the registered parameters filled in `registerParameter`, and `checkForParameterValueChanges` and `renderingStateChanged` iterate it instead of the hash map; the map remains for lookups by address. The existing pull-input and in-place rendering tests cover the frame-count change, and `testAllRegisteredParametersAreChecked` checks that pending changes and ramp cancellation reach every registered parameter.
 
 ## Related Correctness Observations
 

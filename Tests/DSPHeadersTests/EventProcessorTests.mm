@@ -50,6 +50,24 @@ struct MockEffect : public EventProcessor<MockEffect>
 // To validate the API of the MockEffect
 ValidatedKernel<MockEffect> _mockEffect_minMockEffect;
 
+/// Kernel with several parameters that relies on the default parameter handling in `EventProcessor`.
+struct MultiParameterEffect : public EventProcessor<MultiParameterEffect>
+{
+  using super = EventProcessor<MultiParameterEffect>;
+
+  MultiParameterEffect() : super("multi") {
+    registerParameters({first_, second_, third_});
+  }
+
+  void doRendering(BusBuffers, BusBuffers, AUAudioFrameCount) {}
+
+  bool checkForTreeBasedParameterChanges() { return super::checkForParameterValueChanges(); }
+
+  Parameters::Float first_{1, 0.0, false};
+  Parameters::Float second_{2, 0.0, false};
+  Parameters::Float third_{3, 0.0};
+};
+
 @interface EventProcessorTests : XCTestCase
 @property MockEffect* effect;
 @end
@@ -76,6 +94,30 @@ ValidatedKernel<MockEffect> _mockEffect_minMockEffect;
 
 - (void)testInit {
   XCTAssertTrue(self.effect->isRendering());
+}
+
+- (void)testAllRegisteredParametersAreChecked {
+  MultiParameterEffect effect;
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  effect.setRenderingFormat(1, format, 512);
+
+  // Pending changes from the parameter tree on every registered parameter are seen in one render-block check.
+  XCTAssertTrue(effect.setParameterValue(1, 0.25));
+  XCTAssertTrue(effect.setParameterValue(2, 0.5));
+  XCTAssertTrue(effect.setParameterValue(3, 1.0));
+  XCTAssertTrue(effect.checkForTreeBasedParameterChanges());
+  XCTAssertEqual(effect.first_.frameValue(), 0.25);
+  XCTAssertEqual(effect.second_.frameValue(), 0.5);
+  XCTAssertTrue(effect.third_.isRamping());
+
+  // Stopping rendering stops the ramp on every registered parameter, leaving each at its pending value.
+  effect.deallocateRenderResources();
+  XCTAssertFalse(effect.third_.isRamping());
+  XCTAssertEqual(effect.third_.frameValue(), 1.0);
+
+  // Lookups by address still work, including for an unknown address.
+  XCTAssertEqual(effect.getParameterValue(2), 0.5);
+  XCTAssertFalse(effect.setParameterValue(99, 1.0));
 }
 
 - (void)testRenderLoggingDisabledByDefault {

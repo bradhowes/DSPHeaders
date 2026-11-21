@@ -10,6 +10,7 @@
 #include <initializer_list>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <AudioToolbox/AUParameters.h>
 
@@ -201,8 +202,9 @@ public:
       //
       // * NOTE: this should only be used for filters, not for instruments.
       //
+      // Both facets now refer to `output`, whose frame count was just set above, and `pullInput` sets it again before
+      // pulling, so there is no need to set it here as well.
       inputFacet_.assignBufferList(output, outputBus.mutableAudioBufferList());
-      inputFacet_.setFrameCount(frameCount);
 
       AudioUnitRenderActionFlags actionFlags = 0;
       auto status = inputFacet_.pullInput(&actionFlags, timestamp, frameCount, outputBusNumber, pullInputBlock);
@@ -259,6 +261,7 @@ protected:
   void registerParameter(Parameters::Base& parameter) {
     auto result = parameters_.emplace(parameter.address(), parameter);
     assert(result.second);
+    if (result.second) parameterList_.push_back(parameter);
   }
 
   /**
@@ -276,8 +279,8 @@ protected:
    */
   bool checkForParameterValueChanges() noexcept {
     auto changed = false;
-    for (auto param : parameters_) {
-      changed |= param.second.get().checkForValueChange(treeBasedRampDuration_);
+    for (Parameters::Base& param : parameterList_) {
+      changed |= param.checkForValueChange(treeBasedRampDuration_);
     }
 
     if (changed) {
@@ -321,7 +324,7 @@ private:
   }
 
   void renderingStateChanged() noexcept {
-    for (auto param : parameters_) param.second.get().stopRamping();
+    for (Parameters::Base& param : parameterList_) param.stopRamping();
     rampRemaining_ = 0;
     if constexpr (HasRenderingStateChangedT<KernelType>) derived_.doRenderingStateChanged(isRendering());
   }
@@ -451,7 +454,12 @@ private:
 
   double sampleRate_{};
 
+  /// Registered parameters by address, for lookups from the parameter tree and render events.
   ParameterMap parameters_{};
+
+  /// The same parameters in registration order, for the per-render-block walks. A contiguous vector is cheaper to
+  /// iterate than the hash map. It only grows in `registerParameter`, never on the render thread.
+  std::vector<std::reference_wrapper<Parameters::Base>> parameterList_{};
   unsigned long int renderCounter_{0};
 };
 
