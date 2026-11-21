@@ -28,13 +28,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
 ### Medium
 
-3. The LFO calls its waveform through a function pointer, and its sine runs in double precision.
+3. ~~The LFO calls its waveform through a function pointer, and its sine runs in double precision.~~ **Fixed 2026-11-21.**
 
    `valueGenerator_` makes every `value()` call indirect, which blocks inlining and vectorization of a kernel's per-sample loop. `sineValue` computes `std::sin` in `double` and converts the result to `ValueType`.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/LFO.hpp:98`, `Sources/DSPHeaders/include/DSPHeaders/LFO.hpp:139`
 
    Recommendation: switch on `waveform_` inline. Computing the sine in `ValueType` would be faster still but slightly changes the LFO output.
+
+   Resolution: the function pointer is gone; `generate` switches on `waveform_` inline, and an invalid waveform still produces a sinusoid after a debug assertion. `sineValue` now computes `std::sin(2π · phase)` in `ValueType`, which equals the previous `sin(π − 2π · phase)` mathematically, so float oscillators use single-precision sine. Float output now differs from the previous double-precision result by float rounding only. `testSinusoidMatchesDoublePrecision` checks that difference stays within 1e-6 across 4,096 phases, and `testSetWaveformChangesGenerator` checks that each waveform takes effect after `setWaveform`.
 
 4. `DelayBuffer::read` dispatches through a member-function pointer on every read.
 

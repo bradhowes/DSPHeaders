@@ -1,7 +1,9 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <cmath>
 #import <limits>
+#import <numbers>
 #import <vector>
 
 #import "DSPHeaders/LFO.hpp"
@@ -268,6 +270,39 @@ using namespace DSPHeaders;
     std::nextafter(-1.0f, 0.0f), std::nextafter(-1.0f, -2.0f)}) {
     check(value);
   }
+}
+
+- (void)testSinusoidMatchesDoublePrecision {
+  Parameters::Float freq{1, 1.0};
+  LFO<float> osc(freq, 4.0, LFOWaveform::sinusoid);
+
+  // The single-precision sine must stay within float rounding of the previous double-precision result.
+  for (int step = 0; step < 4096; ++step) {
+    float phase = float(step) / 4096.0f;
+    osc.setPhase(phase);
+    double expected = std::sin(std::numbers::pi - double(phase) * 2.0 * std::numbers::pi);
+    XCTAssertEqualWithAccuracy(osc.value(), expected, 1.0e-6, @"phase: %f", phase);
+  }
+}
+
+- (void)testSetWaveformChangesGenerator {
+  Parameters::Float freq{1, 1.0};
+  LFO<float> osc(freq, 8.0, LFOWaveform::sinusoid);
+  osc.setPhase(0.125);
+  SamplesEqual(osc.value(), 0.707107);
+
+  osc.setWaveform(LFOWaveform::sawtooth);
+  XCTAssertEqual(LFOWaveform::sawtooth, osc.waveform());
+  SamplesEqual(osc.value(), -0.75);
+
+  osc.setWaveform(LFOWaveform::triangle);
+  SamplesEqual(osc.value(), 0.5);
+
+  osc.setWaveform(LFOWaveform::square);
+  SamplesEqual(osc.value(), -1.0);
+
+  osc.setWaveform(LFOWaveform::sinusoid);
+  SamplesEqual(osc.value(), 0.707107);
 }
 
 - (void)testTinyNegativePhaseWrapsToZero {

@@ -40,8 +40,8 @@ public:
    @param waveform the waveform to emit
    */
   LFO(Parameters::Float& frequency, ValueType sampleRate, LFOWaveform waveform) noexcept
-  : valueGenerator_{WaveformGenerator(waveform)}, waveform_{waveform}, sampleRate_{sampleRate},
-  phaseIncrement_ {frequency, sampleRate} {
+  : sampleRate_{sampleRate}, waveform_{waveform}, phaseIncrement_ {frequency, sampleRate} {
+    assert(isValidWaveform(waveform));
     reset();
   }
 
@@ -75,8 +75,8 @@ public:
    @param waveform the waveform to emit
    */
   void setWaveform(LFOWaveform waveform) noexcept {
+    assert(isValidWaveform(waveform));
     waveform_ = waveform;
-    valueGenerator_ = WaveformGenerator(waveform);
   }
 
   /**
@@ -95,13 +95,13 @@ public:
   void reset() noexcept { phase_ = 0.0; }
 
   /// @returns current value of the oscillator
-  ValueType value() const noexcept { return valueGenerator_(phase_); }
+  ValueType value() const noexcept { return generate(phase_); }
 
   /// @returns current value of the oscillator that is 90° ahead of what `value()` returns
-  ValueType quadPhaseValue() const noexcept { return valueGenerator_(wrappedModuloCounter(phase_ + 0.25)); }
+  ValueType quadPhaseValue() const noexcept { return generate(wrappedModuloCounter(phase_ + 0.25)); }
 
   /// @returns current value of the oscillator that is 90° behind what `value()` returns
-  ValueType negativeQuadPhaseValue() const noexcept { return valueGenerator_(wrappedModuloCounter(phase_ + 0.75)); }
+  ValueType negativeQuadPhaseValue() const noexcept { return generate(wrappedModuloCounter(phase_ + 0.75)); }
 
   /**
    Increment the oscillator to the next value.
@@ -114,17 +114,31 @@ public:
   LFOWaveform waveform() const noexcept { return waveform_; }
 
 private:
-  using ValueGenerator = ValueType (*)(ValueType);
-
-  static ValueGenerator WaveformGenerator(LFOWaveform waveform) noexcept {
+  static bool isValidWaveform(LFOWaveform waveform) noexcept {
     switch (waveform) {
-      case LFOWaveform::sinusoid: return sineValue;
-      case LFOWaveform::sawtooth: return sawtoothValue;
-      case LFOWaveform::triangle: return triangleValue;
-      case LFOWaveform::square: return squareValue;
+      case LFOWaveform::sinusoid:
+      case LFOWaveform::sawtooth:
+      case LFOWaveform::triangle:
+      case LFOWaveform::square: return true;
     }
-    assert(false);
-    return sineValue;
+    return false;
+  }
+
+  /**
+   Generate the waveform value for a phase. This switches on the waveform rather than calling through a function
+   pointer so that the compiler can inline it into a kernel's per-sample loop. An invalid waveform produces a sinusoid.
+
+   @param counter the normalized phase in [0, 1)
+   @returns the waveform value in [-1, 1]
+   */
+  ValueType generate(ValueType counter) const noexcept {
+    switch (waveform_) {
+      case LFOWaveform::sawtooth: return sawtoothValue(counter);
+      case LFOWaveform::triangle: return triangleValue(counter);
+      case LFOWaveform::square: return squareValue(counter);
+      case LFOWaveform::sinusoid: break;
+    }
+    return sineValue(counter);
   }
 
   static ValueType wrappedModuloCounter(ValueType counter) noexcept {
@@ -155,7 +169,8 @@ private:
   }
 
   static ValueType sineValue(ValueType counter) noexcept {
-    return std::sin(std::numbers::pi - counter * 2.0 * std::numbers::pi);
+    // Computed in `ValueType` so that float oscillators use the faster single-precision sine.
+    return std::sin(ValueType{2} * std::numbers::pi_v<ValueType> * counter);
   }
   static ValueType sawtoothValue(ValueType counter) noexcept { return DSP::unipolarToBipolar(counter); }
   static ValueType triangleValue(ValueType counter) noexcept {
@@ -165,7 +180,6 @@ private:
 
   ValueType sampleRate_;
   LFOWaveform waveform_;
-  ValueGenerator valueGenerator_;
   ValueType phase_ = {0.0};
   PhaseIncrement<ValueType> phaseIncrement_;
 };
