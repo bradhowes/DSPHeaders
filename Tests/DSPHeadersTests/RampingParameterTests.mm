@@ -102,4 +102,25 @@ using namespace DSPHeaders::Parameters;
   XCTAssertFalse(param.isRamping());
 }
 
+- (void)testPendingValueReplacesActiveRamp {
+  auto param = Float(7);
+  AUAudioFrameCount rampDuration{4};
+  param.setImmediate(1.0, rampDuration);
+  param.checkForValueChange(rampDuration);
+  XCTAssertEqual(param.frameValue(), 0.5);
+
+  param.setPending(0.0);
+  param.checkForValueChange(rampDuration);
+  XCTAssertEqual(param.frameValue(), 0.375);
+  XCTAssertTrue(param.isRamping());
+
+  param.checkForValueChange(rampDuration);
+  XCTAssertEqual(param.frameValue(), 0.25);
+  param.checkForValueChange(rampDuration);
+  XCTAssertEqual(param.frameValue(), 0.125);
+  param.checkForValueChange(rampDuration);
+  XCTAssertEqual(param.frameValue(), 0.0);
+  XCTAssertFalse(param.isRamping());
+}
+
 @end

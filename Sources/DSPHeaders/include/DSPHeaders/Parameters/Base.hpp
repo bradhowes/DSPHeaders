@@ -40,6 +40,7 @@ public:
     if (rampRemaining_ > 0) {
       rampRemaining_ = 0;
       value_ = pendingValue_.load(std::memory_order_relaxed);
+      rampTarget_ = value_;
     }
   }
 
@@ -54,8 +55,6 @@ public:
    */
   void setPending(AUValue value) noexcept {
     pendingValue_.store(transformIn_(value), std::memory_order_relaxed);
-    // Stop any active ramping to allow a new ramp to begin.
-    rampRemaining_ = 0;
   }
 
   /**
@@ -93,19 +92,18 @@ public:
   bool checkForValueChange(AUAudioFrameCount duration) noexcept {
     auto pending = pendingValue_.load(std::memory_order_relaxed);
 
-    // Nothing changed.
-    if (pending == value_) [[likely]] {
-      return false;
+    // A pending value from another thread replaces the active ramp only from the render thread.
+    if (pending != rampTarget_) [[unlikely]] {
+      startRamp(pending, duration);
+      return rampRemaining_ > 0;
     }
 
-    // Ramping already in-progress
     if (rampRemaining_ > 0) [[unlikely]] {
-      value_ = --rampRemaining_ > 0 ? (value_ + rampDelta_) : pending;
+      value_ = --rampRemaining_ > 0 ? (value_ + rampDelta_) : rampTarget_;
       return false;
     }
 
-    startRamp(pending, duration);
-    return rampRemaining_ > 0;
+    return false;
   }
 
   /**
@@ -127,18 +125,26 @@ protected:
    */
   Base(AUParameterAddress address, AUValue value, bool canRamp, ValueTransformer forward,
        ValueTransformer reverse) noexcept :
-  address_{address}, value_{forward(value)}, transformIn_{forward}, transformOut_{reverse}, canRamp_{canRamp} {
+  address_{address}, value_{forward(value)}, rampTarget_{value_}, transformIn_{forward}, transformOut_{reverse},
+  canRamp_{canRamp} {
     assert(transformIn_ && transformOut_);
     pendingValue_.store(value_, std::memory_order_relaxed);
   }
 
 private:
   void startRamp(AUValue pendingValue, AUAudioFrameCount duration) noexcept {
+    rampTarget_ = pendingValue;
+    if (rampTarget_ == value_) {
+      rampRemaining_ = 0;
+      rampDelta_ = 0.0;
+      return;
+    }
+
     if (canRamp_ && duration > 1) {
-      rampDelta_ = (pendingValue - value_) / AUValue(duration);
+      rampDelta_ = (rampTarget_ - value_) / AUValue(duration);
     } else {
       duration = 1;
-      rampDelta_ = pendingValue - value_;
+      rampDelta_ = rampTarget_ - value_;
     }
     rampRemaining_ = duration - 1;
     value_ += rampDelta_;
@@ -150,6 +156,9 @@ private:
   /// The value of the parameter, regardless of any ramping that may be taking place. This should only be manipulated
   /// by the rendering thread or when there is no rendering being done.
   AUValue value_;
+
+  /// The destination for the active ramp. This should only be manipulated by the rendering thread.
+  AUValue rampTarget_;
 
   /// The change to apply to the parameter at each frame while ramping. This should only be manipulated
   /// by the rendering thread or when there is no rendering being done.

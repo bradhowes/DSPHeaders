@@ -16,13 +16,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: rendering is capped at `std::min(framesBefore, framesRemaining)`, leaving a future event unprocessed for the next render call. `testFutureEventDoesNotExceedRenderBlock` verifies the processor renders exactly the requested frame count without applying the future parameter event.
 
-2. Parameter updates contain a C++ data race.
+2. ~~Parameter updates contain a C++ data race.~~ **Fixed 2026-11-21.**
 
    `Parameters::Base::setPending`, documented for calls outside the render thread, writes `rampRemaining_`. The render thread reads and writes that same non-atomic variable. Concurrent access is undefined behavior under the C++ memory model.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/Parameters/Base.hpp:55`
 
-   Recommendation: make the render-control state single-thread-owned and communicate pending changes with a coherent atomic protocol, or protect all shared state with synchronization compatible with the real-time constraints.
+   Resolution: `setPending` now modifies only the atomic pending value. The render thread detects when the pending value differs from its private ramp target and restarts the ramp itself. `testPendingValueReplacesActiveRamp` verifies the replacement behavior.
 
 ### High
 
