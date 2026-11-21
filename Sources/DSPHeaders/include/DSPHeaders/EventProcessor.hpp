@@ -335,9 +335,10 @@ private:
         auto framesBefore = AUAudioFrameCount(eventSampleTime < now ? 0 : eventSampleTime - now);
 
         if (framesBefore > 0) {
-          makeFrames(outputBusNumber, outputFacet, framesBefore, frameCount - framesRemaining);
-          framesRemaining -= framesBefore;
-          now += AUEventSampleTime(framesBefore);
+          auto framesToRender = std::min(framesBefore, framesRemaining);
+          makeFrames(outputBusNumber, outputFacet, framesToRender, frameCount - framesRemaining);
+          framesRemaining -= framesToRender;
+          now += AUEventSampleTime(framesToRender);
         }
 
         // Process the events for the current time

@@ -230,6 +230,30 @@ AURenderPullInputBlock mockPullInput = ^(AudioUnitRenderActionFlags* actionFlags
 //  XCTAssertEqual(self.effect->frameCounts_[4], 508);
 }
 
+- (void)testFutureEventDoesNotExceedRenderBlock {
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:512];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = 4;
+  event.parameterAddress = 1;
+  event.rampDurationSampleFrames = 4;
+  event.value = 10;
+
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameterRamp;
+
+  auto status = self.effect->processAndRender(&timestamp, 2, 0, outputData, eventList, mockPullInput);
+
+  XCTAssertEqual(status, 0);
+  XCTAssertEqual(self.effect->frameCounts_.size(), 1);
+  XCTAssertEqual(self.effect->frameCounts_[0], 2);
+  XCTAssertEqual(self.effect->param_.frameValue(), 0.0);
+}
+
 - (void)testUIRampingDuration {
   AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
   AUAudioFrameCount maxFrames = 512;
