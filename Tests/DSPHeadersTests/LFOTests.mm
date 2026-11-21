@@ -1,6 +1,7 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <limits>
 #import <vector>
 
 #import "DSPHeaders/LFO.hpp"
@@ -223,6 +224,22 @@ using namespace DSPHeaders;
   SamplesEqual(osc.value(),  0.75);
   osc.increment();
   SamplesEqual(osc.value(),  0.50);
+}
+
+- (void)testPhaseNormalization {
+  Parameters::Float freq{1, 10.0};
+  LFO<float> osc(freq, 4.0, LFOWaveform::sawtooth);
+
+  osc.setPhase(-0.25);
+  SamplesEqual(osc.phase(), 0.75);
+  osc.setPhase(2.25);
+  SamplesEqual(osc.phase(), 0.25);
+  osc.setPhase(std::numeric_limits<float>::infinity());
+  SamplesEqual(osc.phase(), 0.0);
+
+  osc.setPhase(0.25);
+  osc.increment();
+  SamplesEqual(osc.phase(), 0.75);
 }
 
 - (void)testFrequencyChangeRamping {

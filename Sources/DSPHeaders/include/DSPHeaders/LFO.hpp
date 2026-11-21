@@ -84,8 +84,7 @@ public:
    @param phase the normalized phase to start at (0-1.0)
    */
   void setPhase(ValueType phase) noexcept {
-    while (phase >= 1.0) phase -= 1.0;
-    phase_ = phase;
+    phase_ = wrappedModuloCounter(phase);
   }
 
   /// @returns current internal normalized phase value
@@ -124,10 +123,16 @@ private:
       case LFOWaveform::square: return squareValue;
     }
     assert(false);
+    return sineValue;
   }
 
   static ValueType wrappedModuloCounter(ValueType counter) noexcept {
-    return (counter >= 1.0) ? counter - 1.0 : counter;
+    if (!std::isfinite(counter)) return 0.0;
+    if (counter >= 1.0 || counter < 0.0) {
+      counter = std::fmod(counter, ValueType{1.0});
+      if (counter < 0.0) counter += 1.0;
+    }
+    return counter;
   }
 
   static ValueType sineValue(ValueType counter) noexcept { return std::sin(M_PI - counter * 2.0 * M_PI); }

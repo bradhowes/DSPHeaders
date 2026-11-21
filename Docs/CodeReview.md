@@ -60,13 +60,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
 ### Medium
 
-7. LFO phase normalization is incomplete, and invalid waveforms are undefined in release builds.
+7. ~~LFO phase normalization is incomplete, and invalid waveforms are undefined in release builds.~~ **Fixed 2026-11-21.**
 
    `setPhase` wraps only values greater than or equal to one; negative phases remain negative. `increment` subtracts one only once, so an increment greater than one also escapes the documented normalized range. `WaveformGenerator` reaches the end of a non-void function after `assert(false)`, which is undefined behavior when assertions are disabled.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/LFO.hpp:86`, `Sources/DSPHeaders/include/DSPHeaders/LFO.hpp:119`
 
-   Recommendation: use a robust normalization operation for all finite phase values, validate the allowed frequency range, and provide a defined fallback or termination path for invalid enum values.
+   Resolution: phase normalization now handles negative, multi-cycle, and non-finite inputs; normal single-cycle increments retain a fast path. Invalid waveform values now return a sinusoid generator after the debug assertion. `testPhaseNormalization` covers negative, multi-cycle, non-finite, and high-frequency phase updates.
 
 8. `BusBufferFacet::assignBufferList` assumes every channel is valid when the first one is.
 
