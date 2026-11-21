@@ -134,7 +134,7 @@ private:
     }
   }
 
-  const FrequencyBands& bands_;
+  FrequencyBands bands_;
   ValueType sampleRate_;
   ValueType intensity_;
   int samplesPerFilterUpdate_;

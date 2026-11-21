@@ -9,6 +9,12 @@
 
 using namespace DSPHeaders;
 
+static PhaseShifter<double>::FrequencyBands
+makeFrequencyBands()
+{
+  return PhaseShifter<double>::ideal;
+}
+
 @interface PhaseShifterTests : XCTestCase
 @property float epsilon;
 @end
@@ -81,6 +87,11 @@ using namespace DSPHeaders;
     }
     [self stopMeasuring];
   }];
+}
+
+- (void)testConstructionFromTemporaryFrequencyBands {
+  PhaseShifter<double> phaseShifter{makeFrequencyBands(), 44100.0, 1.0, 1};
+  XCTAssertTrue(std::isfinite(phaseShifter.process(0.0, 1.0)));
 }
 
 @end

@@ -42,13 +42,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `LowPassFilter` now destroys its setup in a noexcept destructor and explicitly disallows copying and moving. `testExclusiveSetupOwnership` verifies the ownership constraints.
 
-5. `PhaseShifter` can retain a dangling frequency-band reference.
+5. ~~`PhaseShifter` can retain a dangling frequency-band reference.~~ **Fixed 2026-11-21.**
 
    The constructor accepts `const FrequencyBands&` and the object stores that reference. Passing a temporary `FrequencyBands` leaves `bands_` dangling once construction finishes.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/PhaseShifter.hpp:65`, `Sources/DSPHeaders/include/DSPHeaders/PhaseShifter.hpp:137`
 
-   Recommendation: store the six-element `FrequencyBands` by value, or reject rvalues explicitly.
+   Resolution: `PhaseShifter` now stores its six-element `FrequencyBands` by value. `testConstructionFromTemporaryFrequencyBands` verifies construction from a temporary band collection.
 
 6. `LowPassFilter` does not update its Nyquist-period cache key.
 
