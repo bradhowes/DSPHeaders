@@ -70,7 +70,7 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: the `DSP.hpp` helpers are now constrained to `std::floating_point` and compute and return `ValueType`. `Interpolation::linear` and `cubic4thOrder` take their type from `partial` and convert the samples to it, so existing calls with integer sample values still work. `Cubic4thOrder` is now a class template on `ValueType` whose `constexpr` weights table is built at compile time in the header, so float interpolation reads a 16 KB float table instead of converting each double weight; the weights are computed in double and rounded, so the double table is unchanged. This removed the static tables in `DSPHeaders.mm`, which was deleted, and changes `Cubic4thOrder::` to `Cubic4thOrder<T>::` for anyone using it directly. `PhaseShifter` no longer stores the modulated frequency in a `double`, and the LFO's phase wrapping and square wave use `ValueType` literals. The LFO changes, `unipolarToBipolar`, and `bipolarToUnipolar` give bit-identical float results; `bipolarModulation`, `decibelToLinear`, and float interpolation differ by float rounding only. Double results are unchanged. `testFloatInputsStayFloat` checks the return types, `testFloatInterpolationMatchesDouble` checks float interpolation against the double path within 1e-6, and `testCubicWeightTables` checks that each float weight is the rounded double weight.
 
-7. `Accelerated` stores its routines in writable static variables.
+7. ~~`Accelerated` stores its routines in writable static variables.~~ **Fixed 2026-11-21.**
 
    Because the pointers are mutable globals, each call loads the pointer and calls indirectly.
 
@@ -78,13 +78,17 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Recommendation: use `static constexpr` pointers or plain inline overloads so calls go directly to vDSP.
 
-8. `forceMinToZero` makes four comparisons per sample per filter.
+   Resolution: the four routine pointers are now `static constexpr`, so the compiler knows each target and emits direct calls. Callers are unchanged. `static_assert`s in `TypesTests.mm` check at compile time that each pointer is a constant naming the expected float or double vDSP routine.
+
+8. ~~`forceMinToZero` makes four comparisons per sample per filter.~~ **Fixed 2026-11-21.**
 
    `PhaseShifter` calls it six times per sample.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/Biquad.hpp:262`
 
    Recommendation: `std::abs(value) <= noiseFloor ? 0 : value` gives the same result with one compare.
+
+   Resolution: `forceMinToZero` now uses `std::abs(value) <= noiseFloor`. Results are identical except that `-0.0` now returns `+0.0`, which compares equal and is inaudible. NaN still passes through unchanged. `testForceMinToZero` compares the new code with the previous implementation at zero, values just inside and outside the noise floor, the smallest denormal, normal samples, infinity, and NaN.
 
 9. The per-sample `BusBuffers` API blocks vectorization.
 

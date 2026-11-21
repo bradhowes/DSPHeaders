@@ -261,7 +261,7 @@ struct Base {
    */
   static ValueType forceMinToZero(ValueType value) noexcept {
     static constexpr ValueType noiseFloor = 2.0e-10f;
-    return (value > 0.0f && value <= noiseFloor) || (value < 0.0f && -value <= noiseFloor) ? 0.0f : value;
+    return std::abs(value) <= noiseFloor ? ValueType{0.0} : value;
   }
 };
 

@@ -1,6 +1,8 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <cmath>
+#import <limits>
 
 #import "Pirkle/fxobjects.h"
 #import "DSPHeaders/Biquad.hpp"
@@ -256,6 +258,24 @@ using namespace DSPHeaders;
     double input = inputGenerator(counter);
     XCTAssertEqualWithAccuracy(filter.transform(input), ramping.transform(input), _epsilon);
   }
+}
+
+- (void)testForceMinToZero {
+  using Base = Biquad::Transform::Base<float>;
+  constexpr float noiseFloor = 2.0e-10f;
+
+  // The previous four-comparison implementation, kept as the reference.
+  auto reference = [&](float value) {
+    return (value > 0.0f && value <= noiseFloor) || (value < 0.0f && -value <= noiseFloor) ? 0.0f : value;
+  };
+
+  for (float value : {0.0f, 1.0e-12f, -1.0e-12f, noiseFloor, -noiseFloor, std::nextafter(noiseFloor, 1.0f),
+    -std::nextafter(noiseFloor, 1.0f), 1.0e-5f, -1.0e-5f, 0.5f, -0.5f, 1.0f, -1.0f,
+    std::numeric_limits<float>::denorm_min(), std::numeric_limits<float>::infinity()}) {
+    XCTAssertEqual(Base::forceMinToZero(value), reference(value), @"value: %a", value);
+  }
+
+  XCTAssertTrue(std::isnan(Base::forceMinToZero(std::numeric_limits<float>::quiet_NaN())));
 }
 
 @end

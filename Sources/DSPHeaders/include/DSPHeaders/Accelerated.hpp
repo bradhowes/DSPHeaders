@@ -10,6 +10,7 @@ namespace DSPHeaders {
 /**
  Collection of function pointers that refer to routines found in Apple's Accelerated framework.
  These are written so that the right routine is chosen depending on the definition of a template argument `T`.
+ The pointers are `constexpr`, so calls through them compile to direct calls to the vDSP routines.
  */
 template <std::floating_point T>
 struct Accelerated
@@ -19,7 +20,7 @@ struct Accelerated
    floating-point values. NOTE that this does not do any scaling of the resulting values.
    */
   using ConversionProc = void (*)(const int16_t*, vDSP_Stride, T*, vDSP_Stride, vDSP_Length);
-  inline static ConversionProc conversionProc = []() noexcept {
+  static constexpr ConversionProc conversionProc = []() noexcept {
     if constexpr (std::is_same_v<T, float>) return vDSP_vflt16;
     if constexpr (std::is_same_v<T, double>) return vDSP_vflt16D;
   }();
@@ -30,7 +31,7 @@ struct Accelerated
    doubles.
    */
   using ScaleProc = void (*)(const T*, vDSP_Stride, const T*, T*, vDSP_Stride, vDSP_Length);
-  inline static ScaleProc scaleProc = []() noexcept {
+  static constexpr ScaleProc scaleProc = []() noexcept {
     if constexpr (std::is_same_v<T, float>) return vDSP_vsmul;
     if constexpr (std::is_same_v<T, double>) return vDSP_vsmulD;
   }();
@@ -40,7 +41,7 @@ struct Accelerated
    floating-point values.
    */
   using MagnitudeProc = void (*)(const T*, vDSP_Stride, T*, vDSP_Length);
-  inline static MagnitudeProc magnitudeProc = []() noexcept {
+  static constexpr MagnitudeProc magnitudeProc = []() noexcept {
     if constexpr (std::is_same_v<T, float>) return vDSP_maxmgv;
     if constexpr (std::is_same_v<T, double>) return vDSP_maxmgvD;
   }();
@@ -49,7 +50,7 @@ struct Accelerated
    Type definition for vDSP\_vclr / vDSP\_vclrD routines that sets sequence of floating-point values to zero (0.0)
    */
   using ZeroProc = void (*)(T*, vDSP_Stride, vDSP_Length);
-  inline static ZeroProc zeroProc = []() noexcept {
+  static constexpr ZeroProc zeroProc = []() noexcept {
     if constexpr (std::is_same_v<T, float>) return vDSP_vclr;
     if constexpr (std::is_same_v<T, double>) return vDSP_vclrD;
   }();
