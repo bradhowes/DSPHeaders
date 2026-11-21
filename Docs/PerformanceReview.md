@@ -16,13 +16,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `wrappedModuloCounter` now returns values in `[0, 1)` unchanged, subtracts 1 for values in `[1, 2)`, and adds 1 for values in `(-1, 0)`. Only larger magnitudes and non-finite values reach the `fmod` path. The subtraction is exact for that range, so results are bit-identical to `fmod`, with one intentional exception: a tiny negative value plus 1 rounds to exactly 1, outside the normalized range, so it now wraps to 0. `testPhaseWrappingMatchesFmod` compares the results with an `fmod` reference across a sweep of values and at each range boundary, and `testTinyNegativePhaseWrapsToZero` covers the rounding case.
 
-2. The render thread logs.
+2. ~~The render thread logs.~~ **Fixed 2026-11-21.**
 
    `os_log_info` runs for each event-handling pass, each `processEventsUntil` call, each parameter or MIDI event, and each `setImmediateParameterValue` reached from a render event. It is cheap when info logging is disabled, but when logs are being streamed in Console or Instruments it formats and does IPC on the audio thread, which can cause dropouts and change timing while debugging.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:226`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:293`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:330`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:384`
 
    Recommendation: remove logging from the render path, or put it behind a compile-time flag that defaults to off. Keep the rare error paths.
+
+   Resolution: render-path logging in `render`, `processEventsUntil`, and `setImmediateParameterValue` is now guarded by `if constexpr (renderLoggingEnabled)`, which is set from the `DSPHEADERS_RENDER_LOGGING` compiler flag and defaults to off, so the calls are not compiled in normal builds. Because the header is part of a Clang module, the flag must be set build-wide (for example `-DDSPHEADERS_RENDER_LOGGING=1`). The two error logs in `processAndRender` remain. `setRendering` was listed in error: it runs only from `setRenderingFormat` and `deallocateRenderResources`, not on the render thread, so its log is unchanged. `testRenderLoggingDisabledByDefault` checks the default; building and running the event tests with the flag enabled exercises the logging branches.
 
 ### Medium
 

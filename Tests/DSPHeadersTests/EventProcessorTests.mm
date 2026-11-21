@@ -78,6 +78,10 @@ ValidatedKernel<MockEffect> _mockEffect_minMockEffect;
   XCTAssertTrue(self.effect->isRendering());
 }
 
+- (void)testRenderLoggingDisabledByDefault {
+  XCTAssertFalse(MockEffect::renderLoggingEnabled);
+}
+
 - (void)testBypass {
   XCTAssertFalse(self.effect->isBypassed());
   self.effect->setBypass(true);

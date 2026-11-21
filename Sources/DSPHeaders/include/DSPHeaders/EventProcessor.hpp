@@ -19,6 +19,13 @@
 #include "DSPHeaders/Parameters/Base.hpp"
 #include "DSPHeaders/Concepts.hpp"
 
+/// Set to 1 to log event processing on the render thread. Logging there is not real-time safe, so this is meant only
+/// for debugging. Because this header is part of a Clang module, define it as a compiler flag for the whole build
+/// (for example `-DDSPHEADERS_RENDER_LOGGING=1`) rather than with a `#define` before including the header.
+#ifndef DSPHEADERS_RENDER_LOGGING
+#define DSPHEADERS_RENDER_LOGGING 0
+#endif
+
 namespace DSPHeaders {
 
 /**
@@ -44,6 +51,9 @@ template <typename KernelType>
 class EventProcessor {
 public:
   using ParameterMap = std::unordered_map<AUParameterAddress, std::reference_wrapper<DSPHeaders::Parameters::Base>>;
+
+  /// True if render-thread logging was enabled with `DSPHEADERS_RENDER_LOGGING`.
+  static constexpr bool renderLoggingEnabled = DSPHEADERS_RENDER_LOGGING != 0;
 
   /**
    Construct new instance.
@@ -290,7 +300,8 @@ private:
   }
 
   bool setImmediateParameterValue(AUParameterAddress address, AUValue value, AUAudioFrameCount duration) noexcept {
-    os_log_info(log_, "setImmediateParameterValue - %llu %f", address, value);
+    // Called from the render thread for parameter events, so treat this as render-thread logging.
+    if constexpr (renderLoggingEnabled) os_log_info(log_, "setImmediateParameterValue - %llu %f", address, value);
     if constexpr (HasSetImmediateParameterValue<KernelType>)
       return derived_.doSetImmediateParameterValue(address, value, duration);
     auto pos = parameters_.find(address);
@@ -327,7 +338,10 @@ private:
       ++renderCounter_;
 
       while (framesRemaining > 0 && events != nullptr) [[unlikely]] {
-        os_log_info(log_, "%lu %ld render now: %lld framesRemaining: %u", renderCounter_, outputBusNumber, now, framesRemaining);
+        if constexpr (renderLoggingEnabled) {
+          os_log_info(log_, "%lu %ld render now: %lld framesRemaining: %u", renderCounter_, outputBusNumber, now,
+                      framesRemaining);
+        }
 
         // See if there are frames to process before the next event. Here "time" is measured in samples, so we just need
         // to change type to convert between the two.
@@ -381,31 +395,38 @@ private:
   }
 
   AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now, AURenderEvent const* _Nonnull event) noexcept {
-    os_log_info(log_, "%lu processingEventsUntil BEGIN - %p", renderCounter_, event);
+    if constexpr (renderLoggingEnabled) os_log_info(log_, "%lu processingEventsUntil BEGIN - %p", renderCounter_, event);
     while (event != nullptr && event->head.eventSampleTime <= now) {
       switch (event->head.eventType) {
         case AURenderEventParameter:
-          os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress, event->parameter.value);
+          if constexpr (renderLoggingEnabled) {
+            os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress,
+                        event->parameter.value);
+          }
           processEventParameterChange(event->parameter, treeBasedRampDuration_);
           break;
 
         case AURenderEventParameterRamp:
-          os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress, event->parameter.value,
-                      event->parameter.rampDurationSampleFrames);
+          if constexpr (renderLoggingEnabled) {
+            os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress,
+                        event->parameter.value, event->parameter.rampDurationSampleFrames);
+          }
           processEventParameterChange(event->parameter, event->parameter.rampDurationSampleFrames);
           break;
 
         case AURenderEventMIDI:
         case AURenderEventMIDISysEx:
-          os_log_info(log_, "processingEventsUntil - MIDI v1 events %p - now: %lld event: %lld", event, now,
-                      event->head.eventSampleTime);
+          if constexpr (renderLoggingEnabled) {
+            os_log_info(log_, "processingEventsUntil - MIDI v1 events %p - now: %lld event: %lld", event, now,
+                        event->head.eventSampleTime);
+          }
           if constexpr (HasMIDIEventV1<KernelType>) {
             derived_.doMIDIEvent(event->MIDI);
           }
           break;
 
         case AURenderEventMIDIEventList:
-          os_log_info(log_, "processingEventsUntil - ignoring MIDI v2 events");
+          if constexpr (renderLoggingEnabled) os_log_info(log_, "processingEventsUntil - ignoring MIDI v2 events");
           // TODO: handle MIDI v2 packets
           break;
 
