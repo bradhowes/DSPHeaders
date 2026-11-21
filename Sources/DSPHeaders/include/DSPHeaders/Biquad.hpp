@@ -434,17 +434,6 @@ public:
   }
 
   /**
-   Use a new set of biquad coefficients.
-
-   @param coefficients the new filter coefficients to use
-   @param rampDurationInSamples gradually apply change over this number of samples
-   */
-  void setCoefficients(CoefficientsType&& coefficients, size_t rampDurationInSamples = 0) noexcept
-  {
-    ramper_.start(coefficients, rampDurationInSamples);
-  }
-
-  /**
    Reset internal state.
    */
   void reset() noexcept
@@ -454,23 +443,25 @@ public:
   }
 
   /**
-   Apply the filter to a given value.
+   Apply the filter to a given value. This is the only operation that advances an active coefficient ramp, so a ramp
+   over N samples completes after N calls.
 
    @param input the value to filter
    @returns trasformed value
    */
   ValueType transform(ValueType input) noexcept
   {
-    return Transformer::transform(input, state_, ramper_.coefficients());
+    return Transformer::transform(input, state_, ramper_.advance());
   }
 
   /**
-   Obtain the `gain` value from the coefficients.
+   Obtain the `gain` value from the current coefficients. Does not advance an active ramp.
    */
   ValueType gainValue() const noexcept { return ramper_.coefficients().a0; }
 
   /**
-   Obtain a calculated state value. This used in some of Pirkle's signal processing algorithms.
+   Obtain a calculated state value. This used in some of Pirkle's signal processing algorithms. Does not advance an
+   active ramp.
    */
   ValueType storageComponent() const noexcept { return Transformer::storageComponent(state_, ramper_.coefficients()); }
 
@@ -499,35 +490,9 @@ private:
         goal_ = coefficients;
         change_ = coefficients_.rampFactor(goal_, rampingDuration);
       } else {
+        rampRemaining_ = 0;
         coefficients_ = coefficients;
       }
-    }
-
-    void setupRamp(const CoefficientsType& coefficients, size_t rampingDuration) noexcept {
-      goal_ = coefficients;
-      rampRemaining_ = rampingDuration;
-      change_ = coefficients_.rampFactor(goal_, rampingDuration);
-    }
-
-    /**
-     Set new coefficients for the filter, ramping to them over time.
-
-     @param coefficients new coefficients to use
-     @param rampingDuration how many samples to take to change from old value to new one
-     */
-    void start(CoefficientsType&& coefficients, size_t rampingDuration) noexcept
-    {
-      if (rampingDuration) {
-        setupRamp(std::forward(coefficients), rampingDuration);
-      } else {
-        coefficients_ = std::move(coefficients);
-      }
-    }
-
-    void setupRamp(CoefficientsType&& coefficients, size_t rampingDuration) noexcept {
-      goal_ = std::move(coefficients);
-      rampRemaining_ = rampingDuration;
-      change_ = coefficients_.rampFactor(goal_, rampingDuration);
     }
 
     void reset() noexcept
@@ -538,12 +503,15 @@ private:
       }
     }
 
+    /// @returns the current filter coefficients, without advancing an active ramp
+    const CoefficientsType& coefficients() const noexcept { return coefficients_; }
+
     /**
-     Obtain the filter coefficients to use, updating if ramping is in progress.
+     Advance an active ramp by one sample and obtain the filter coefficients to use for that sample.
 
      @returns filter coefficients
      */
-    const CoefficientsType& coefficients() noexcept
+    const CoefficientsType& advance() noexcept
     {
       switch (rampRemaining_) {
         case 0:
@@ -567,13 +535,8 @@ private:
     CoefficientsType goal_{};
   };
 
-  /**
-   Obtain writable reference to current coefficients. Only used by RampingAdapter
-   */
-  CoefficientsType& coefficients() noexcept { return ramper_.coefficients(); }
-
   StateType state_;
-  mutable Ramper ramper_;
+  Ramper ramper_;
 };
 
 template <typename ValueType = AUValue>

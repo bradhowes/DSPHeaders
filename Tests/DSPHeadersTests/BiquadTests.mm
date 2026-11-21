@@ -278,4 +278,53 @@ using namespace DSPHeaders;
   XCTAssertTrue(std::isnan(Base::forceMinToZero(std::numeric_limits<float>::quiet_NaN())));
 }
 
+- (void)testReadingCoefficientsDoesNotAdvanceRamp {
+  double sampleRate = 44100.0;
+  auto start = Biquad::Coefficients<>::LPF2(sampleRate, 4000.0, 0.707);
+  auto goal = Biquad::Coefficients<>::LPF2(sampleRate, 2000.0, 0.707);
+  size_t rampCount = 8;
+
+  // Two filters ramp identically, but one has its coefficients read between samples. Reads must not change the ramp.
+  Biquad::CanonicalTranspose<> plain{start};
+  Biquad::CanonicalTranspose<> inspected{start};
+  plain.setCoefficients(goal, rampCount);
+  inspected.setCoefficients(goal, rampCount);
+
+  for (int sample = 0; sample < 32; ++sample) {
+    double input = std::sin(sample / 5.0);
+    for (int read = 0; read < 3; ++read) {
+      (void)inspected.gainValue();
+      (void)inspected.storageComponent();
+    }
+    XCTAssertEqual(plain.transform(input), inspected.transform(input), @"sample: %d", sample);
+    XCTAssertEqual(plain.gainValue(), inspected.gainValue(), @"sample: %d", sample);
+  }
+
+  // After the ramp completes the gain is the goal's gain.
+  XCTAssertEqual(plain.gainValue(), goal.a0);
+}
+
+- (void)testImmediateCoefficientsCancelRamp {
+  double sampleRate = 44100.0;
+  auto start = Biquad::Coefficients<>::LPF2(sampleRate, 4000.0, 0.707);
+  auto rampGoal = Biquad::Coefficients<>::LPF2(sampleRate, 2000.0, 0.707);
+  auto immediate = Biquad::Coefficients<>::LPF2(sampleRate, 1000.0, 0.707);
+
+  Biquad::Direct<> filter{start};
+  filter.setCoefficients(rampGoal, 8);
+  filter.transform(0.5);
+  filter.transform(0.5);
+
+  // An immediate change replaces an active ramp; later samples must not continue toward the old goal.
+  filter.setCoefficients(immediate);
+  XCTAssertEqual(filter.gainValue(), immediate.a0);
+  for (int sample = 0; sample < 16; ++sample) filter.transform(0.5);
+  XCTAssertEqual(filter.gainValue(), immediate.a0);
+
+  // Temporaries bind to the const reference overload, with or without a ramp.
+  filter.setCoefficients(Biquad::Coefficients<>::LPF2(sampleRate, 3000.0, 0.707), 4);
+  for (int sample = 0; sample < 4; ++sample) filter.transform(0.5);
+  XCTAssertEqualWithAccuracy(filter.gainValue(), Biquad::Coefficients<>::LPF2(sampleRate, 3000.0, 0.707).a0, 1.0e-12);
+}
+
 @end
