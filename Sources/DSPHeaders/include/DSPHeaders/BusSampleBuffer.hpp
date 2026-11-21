@@ -2,10 +2,10 @@
 
 #pragma once
 
-#import <cassert>
-#import <string>
+#include <cassert>
+#include <string>
 
-#import <AVFAudio/AVFAudio.h>
+#include <AVFAudio/AVFAudio.h>
 
 namespace DSPHeaders {
 

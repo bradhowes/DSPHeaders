@@ -2,11 +2,11 @@
 
 #pragma once
 
-#import <algorithm>
-#import <atomic>
+#include <algorithm>
+#include <atomic>
 #include <cmath>
 
-#import <AudioToolbox/AUParameters.h>
+#include <AudioToolbox/AUParameters.h>
 
 namespace DSPHeaders::Parameters {
 

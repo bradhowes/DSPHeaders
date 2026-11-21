@@ -2,16 +2,16 @@
 
 #pragma once
 
-#import <type_traits>
+#include <type_traits>
 
-#import <os/log.h>
-#import <AudioToolbox/AUAudioUnit.h>
-#import <algorithm>
-#import <span>
-#import <vector>
+#include <os/log.h>
+#include <AudioToolbox/AUAudioUnit.h>
+#include <algorithm>
+#include <span>
+#include <vector>
 
-#import "DSPHeaders/Accelerated.hpp"
-#import "DSPHeaders/BusBuffers.hpp"
+#include "DSPHeaders/Accelerated.hpp"
+#include "DSPHeaders/BusBuffers.hpp"
 
 namespace DSPHeaders {
 

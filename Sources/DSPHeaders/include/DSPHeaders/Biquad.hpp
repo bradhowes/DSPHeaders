@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cmath>
+#include <numbers>
 #include <utility>
 
 #include <AudioToolbox/AUParameters.h>
@@ -99,7 +100,7 @@ struct Coefficients {
    @returns Coefficients collection
    */
   static Coefficients LPF1(ValueType sampleRate, ValueType frequency) noexcept {
-    ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
+    ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     ValueType alpha = (1.0 - gamma) / 2.0f;
     return Coefficients(alpha, alpha, 0.0f, -gamma, 0.0f);
@@ -113,7 +114,7 @@ struct Coefficients {
    @returns Coefficients collection
    */
   static Coefficients HPF1(ValueType sampleRate, ValueType frequency) noexcept {
-    ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
+    ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     ValueType alpha = (1.0 + gamma) / 2.0f;
     return Coefficients(alpha, -alpha, 0.0f, -gamma, 0.0f);
@@ -128,7 +129,7 @@ struct Coefficients {
    @returns Coefficients collection
    */
   static Coefficients LPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
-    ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
+    ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType d = 1.0f / (resonance * 2.0f);
     ValueType dsinTheta = d * std::sin(theta);
     ValueType beta = 0.5f * (1.0f - dsinTheta) / (1.0f + dsinTheta);
@@ -146,7 +147,7 @@ struct Coefficients {
    @returns Coefficients collection
    */
   static Coefficients HPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
-    ValueType theta = 2.0f * ValueType(M_PI) * frequency / sampleRate;
+    ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType d = 1.0f / (resonance * 2.0f);
     ValueType dsinTheta = d * std::sin(theta);
     ValueType beta = 0.5f * (1.0f - dsinTheta) / (1.0f + dsinTheta);
@@ -163,7 +164,7 @@ struct Coefficients {
    @returns Coefficients collection
    */
   static Coefficients APF1(ValueType sampleRate, ValueType frequency) noexcept {
-    ValueType tangent = std::tan(ValueType(M_PI) * frequency / sampleRate);
+    ValueType tangent = std::tan(std::numbers::pi_v<ValueType> * frequency / sampleRate);
     ValueType alpha = (tangent - 1.0f) / (tangent + 1.0f);
     return Coefficients(alpha, 1.0f, 0.0f, alpha, 0.0f);
   }
@@ -178,11 +179,12 @@ struct Coefficients {
    */
   static Coefficients APF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType bandwidth = frequency / resonance;
-    ValueType argTan = ValueType(M_PI) * bandwidth / sampleRate;
-    if (argTan >= 0.95f * ValueType(M_PI) / 2.0f) argTan = 0.95f * ValueType(M_PI) / 2.0f;
+    ValueType argTan = std::numbers::pi_v<ValueType> * bandwidth / sampleRate;
+    constexpr ValueType maxArgTan = 0.95f * std::numbers::pi_v<ValueType> / 2.0f;
+    if (argTan >= maxArgTan) argTan = maxArgTan;
     ValueType tangent = std::tan(argTan);
     ValueType alpha = (tangent - 1.0f) / (tangent + 1.0f);
-    ValueType beta = -std::cos(2.0f * ValueType(M_PI) * frequency / sampleRate);
+    ValueType beta = -std::cos(2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate);
     return Coefficients(-alpha, beta * (1.0f - alpha), 1.0f, beta * (1.0f - alpha), -alpha);
   }
 

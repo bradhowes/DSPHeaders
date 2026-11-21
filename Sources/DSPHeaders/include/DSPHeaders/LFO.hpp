@@ -2,12 +2,13 @@
 
 #pragma once
 
-#import <cassert>
-#import <cmath>
+#include <cassert>
+#include <cmath>
+#include <numbers>
 
-#import "DSP.hpp"
-#import "DSPHeaders/Parameters/Float.hpp"
-#import "DSPHeaders/PhaseIncrement.hpp"
+#include "DSP.hpp"
+#include "DSPHeaders/Parameters/Float.hpp"
+#include "DSPHeaders/PhaseIncrement.hpp"
 
 enum class LFOWaveform { sinusoid, triangle, sawtooth, square};
 
@@ -135,7 +136,9 @@ private:
     return counter;
   }
 
-  static ValueType sineValue(ValueType counter) noexcept { return std::sin(M_PI - counter * 2.0 * M_PI); }
+  static ValueType sineValue(ValueType counter) noexcept {
+    return std::sin(std::numbers::pi - counter * 2.0 * std::numbers::pi);
+  }
   static ValueType sawtoothValue(ValueType counter) noexcept { return DSP::unipolarToBipolar(counter); }
   static ValueType triangleValue(ValueType counter) noexcept {
     return DSP::unipolarToBipolar(std::abs(DSP::unipolarToBipolar(counter)));

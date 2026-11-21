@@ -2,13 +2,13 @@
 
 #pragma once
 
-#import <concepts>
-#import <type_traits>
+#include <concepts>
+#include <type_traits>
 
-#import <AudioToolbox/AudioToolbox.h>
+#include <AudioToolbox/AudioToolbox.h>
 
-#import "DSPHeaders/BusBuffers.hpp"
-#import "DSPHeaders/BusBufferFacet.hpp"
+#include "DSPHeaders/BusBuffers.hpp"
+#include "DSPHeaders/BusBufferFacet.hpp"
 
 namespace DSPHeaders {
 

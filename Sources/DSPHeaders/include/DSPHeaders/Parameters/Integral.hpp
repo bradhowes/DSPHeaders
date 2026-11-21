@@ -2,10 +2,10 @@
 
 #pragma once
 
-#import <cmath>
-#import <AVFoundation/AVFoundation.h>
+#include <cmath>
+#include <AVFoundation/AVFoundation.h>
 
-#import "DSPHeaders/Parameters/Base.hpp"
+#include "DSPHeaders/Parameters/Base.hpp"
 
 namespace DSPHeaders::Parameters {
 

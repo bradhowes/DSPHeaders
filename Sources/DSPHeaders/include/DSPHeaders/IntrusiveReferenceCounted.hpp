@@ -2,7 +2,7 @@
 
 #pragma once
 
-#import <atomic>
+#include <atomic>
 
 namespace DSPHeaders {
 

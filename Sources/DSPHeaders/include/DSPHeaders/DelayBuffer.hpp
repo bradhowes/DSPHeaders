@@ -2,10 +2,10 @@
 
 #pragma once
 
-#import <cmath>
-#import <vector>
+#include <cmath>
+#include <vector>
 
-#import "DSPHeaders/DSP.hpp"
+#include "DSPHeaders/DSP.hpp"
 
 namespace DSPHeaders {
 

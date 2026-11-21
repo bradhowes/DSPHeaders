@@ -2,12 +2,12 @@
 
 #pragma once
 
-#import <Accelerate/Accelerate.h>
-#import <cassert>
-#import <cmath>
-#import <vector>
+#include <Accelerate/Accelerate.h>
+#include <cassert>
+#include <cmath>
+#include <vector>
 
-#import "DSPHeaders/BusBuffers.hpp"
+#include "DSPHeaders/BusBuffers.hpp"
 
 namespace DSPHeaders {
 

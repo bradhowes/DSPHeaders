@@ -2,10 +2,10 @@
 
 #pragma once
 
-#import <AudioToolbox/AudioToolbox.h>
-#import <AVFoundation/AVFoundation.h>
+#include <AudioToolbox/AudioToolbox.h>
+#include <AVFoundation/AVFoundation.h>
 
-#import <functional>
+#include <functional>
 
 namespace DSPHeaders {
 

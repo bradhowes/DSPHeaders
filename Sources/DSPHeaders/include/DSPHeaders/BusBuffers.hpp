@@ -2,13 +2,13 @@
 
 #pragma once
 
-#import <cassert>
-#import <type_traits>
-#import <vector>
+#include <cassert>
+#include <type_traits>
+#include <vector>
 
-#import <AudioToolbox/AUAudioUnit.h>
+#include <AudioToolbox/AUAudioUnit.h>
 
-#import "DSPHeaders/Accelerated.hpp"
+#include "DSPHeaders/Accelerated.hpp"
 
 namespace DSPHeaders {
 

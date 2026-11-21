@@ -84,13 +84,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: retain is now a relaxed `fetch_add`, and release is a single acquire-release `fetch_sub` that deletes only when it drops the last reference. Release also now deletes through `T*` rather than the base pointer, since the base class has no virtual destructor. `testRetainRelease` and `testConcurrentRetainRelease` verify that an instance is deleted exactly once, including under concurrent retain and release from multiple threads.
 
-10. The public headers rely on non-standard C++ facilities.
+10. ~~The public headers rely on non-standard C++ facilities.~~ **Fixed 2026-11-21.**
 
    `#import` and `M_PI` are compiler or platform extensions, not C++23 facilities. They reduce portability of what is otherwise exposed as a C++ library.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/Types.hpp:3`, `Sources/DSPHeaders/include/DSPHeaders/Biquad.hpp:102`
 
-   Recommendation: use `#include` for C++ headers and `std::numbers::pi_v<T>` from `<numbers>`.
+   Resolution: every public header now uses `#include`, and `Types.hpp` gained the `#pragma once` it had been relying on `#import` to supply. `Biquad.hpp` uses `std::numbers::pi_v<ValueType>`, and `LFO.hpp` uses `std::numbers::pi`, keeping its existing double-precision sine argument. The existing Biquad and LFO tests verify the numeric results are unchanged.
 
 ## Validation
 

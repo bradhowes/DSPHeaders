@@ -2,12 +2,12 @@
 
 #pragma once
 
-#import <algorithm>
-#import <array>
-#import <cassert>
-#import <cmath>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cmath>
 
-#import "DSPHeaders/ConstMath.hpp"
+#include "DSPHeaders/ConstMath.hpp"
 
 namespace DSPHeaders::DSP {
 

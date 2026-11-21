@@ -1,8 +1,10 @@
 // Copyright © 2024-2026 Brad Howes. All rights reserved.
 
-#import <type_traits>
+#pragma once
 
-#import "DSPHeaders/Concepts.hpp"
+#include <type_traits>
+
+#include "DSPHeaders/Concepts.hpp"
 
 namespace DSPHeaders {
 

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#import <cassert>
-#import <cmath>
+#include <cassert>
+#include <cmath>
 
-#import "DSP.hpp"
-#import "DSPHeaders/Parameters/Float.hpp"
+#include "DSP.hpp"
+#include "DSPHeaders/Parameters/Float.hpp"
 
 namespace DSPHeaders {
 

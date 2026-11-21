@@ -2,7 +2,7 @@
 
 #pragma once
 
-#import "DSPHeaders/Parameters/Base.hpp"
+#include "DSPHeaders/Parameters/Base.hpp"
 
 namespace DSPHeaders::Parameters {
 

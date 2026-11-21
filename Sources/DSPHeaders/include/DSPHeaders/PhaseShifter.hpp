@@ -2,12 +2,12 @@
 
 #pragma once
 
-#import <algorithm>
-#import <array>
-#import <cassert>
+#include <algorithm>
+#include <array>
+#include <cassert>
 
-#import "Biquad.hpp"
-#import "DSP.hpp"
+#include "Biquad.hpp"
+#include "DSP.hpp"
 
 namespace DSPHeaders {
 
