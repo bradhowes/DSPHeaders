@@ -38,13 +38,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: the function pointer is gone; `generate` switches on `waveform_` inline, and an invalid waveform still produces a sinusoid after a debug assertion. `sineValue` now computes `std::sin(2π · phase)` in `ValueType`, which equals the previous `sin(π − 2π · phase)` mathematically, so float oscillators use single-precision sine. Float output now differs from the previous double-precision result by float rounding only. `testSinusoidMatchesDoublePrecision` checks that difference stays within 1e-6 across 4,096 phases, and `testSetWaveformChangesGenerator` checks that each waveform takes effect after `setWaveform`.
 
-4. `DelayBuffer::read` dispatches through a member-function pointer on every read.
+4. ~~`DelayBuffer::read` dispatches through a member-function pointer on every read.~~ **Fixed 2026-11-21.**
 
    The interpolator is chosen at construction but invoked indirectly per sample, so it cannot be inlined.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/DelayBuffer.hpp:81`, `Sources/DSPHeaders/include/DSPHeaders/DelayBuffer.hpp:91`
 
    Recommendation: make the interpolator a template parameter or switch on a stored enum.
+
+   Resolution: the interpolator is now a template parameter, `DelayBuffer<ValueType, DelayBufferInterpolator InterpolatorKind = linear>`, and `read` selects it with `if constexpr`, so the call is direct and inlinable. The enum moved to namespace scope as `DelayBufferInterpolator`; `DelayBuffer<T>::Interpolator` remains as an alias and `interpolator` exposes the chosen kind. This is a source-breaking change: the constructor no longer takes an interpolator, so code such as `DelayBuffer<float>(size, DelayBuffer<float>::Interpolator::cubic4thOrder)` must become `DelayBuffer<float, DelayBufferInterpolator::cubic4thOrder>(size)`, and old calls fail to compile rather than silently using linear. Interpolated values are unchanged; the existing interpolation tests pass with their original expected values, and `testInterpolatorSelection` checks the default, the exposed kind, and that each kind interpolates differently.
 
 5. `PhaseShifter::process` recomputes values per sample that change only when coefficients are updated.
 

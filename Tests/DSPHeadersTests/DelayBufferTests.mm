@@ -53,8 +53,24 @@ static float epsilon = 1.0E-7;
   XCTAssertEqualWithAccuracy(buffer.readFromOffset(-8), 3.6, epsilon);
 }
 
+- (void)testInterpolatorSelection {
+  static_assert(DelayBuffer<float>::interpolator == DelayBufferInterpolator::linear);
+  static_assert(DelayBuffer<float, DelayBufferInterpolator::cubic4thOrder>::interpolator ==
+                DelayBuffer<float>::Interpolator::cubic4thOrder);
+
+  // At a fractional delay the two interpolators give different results from the same samples.
+  DelayBuffer<double> linear(8);
+  DelayBuffer<double, DelayBufferInterpolator::cubic4thOrder> cubic(8);
+  for (double value : {0.0, 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25}) {
+    linear.write(value);
+    cubic.write(value);
+  }
+  XCTAssertEqualWithAccuracy(linear.read(1.5), 0.625, epsilon);
+  XCTAssertEqualWithAccuracy(cubic.read(1.5), 0.90625, epsilon);
+}
+
 - (void)testWriteWrapping {
-  auto buffer = DelayBuffer<double>(4, DelayBuffer<double>::Interpolator::linear);
+  auto buffer = DelayBuffer<double, DelayBufferInterpolator::linear>(4);
   XCTAssertEqual(4, buffer.size());
   buffer.write(1.2);
   buffer.write(2.4);
@@ -69,7 +85,7 @@ static float epsilon = 1.0E-7;
 }
 
 - (void)testReadLinearInterpolated {
-  auto buffer = DelayBuffer<double>(8, DelayBuffer<double>::Interpolator::linear);
+  auto buffer = DelayBuffer<double, DelayBufferInterpolator::linear>(8);
   XCTAssertEqual(8, buffer.size());
   buffer.write(1.2);
   buffer.write(2.4);
@@ -87,7 +103,7 @@ static float epsilon = 1.0E-7;
 }
 
 - (void)testReadCubic4thOrderInterpolated {
-  auto buffer = DelayBuffer<double>(8, DelayBuffer<double>::Interpolator::cubic4thOrder);
+  auto buffer = DelayBuffer<double, DelayBufferInterpolator::cubic4thOrder>(8);
   XCTAssertEqual(8, buffer.size());
   buffer.write(0.00);
   buffer.write(0.25);

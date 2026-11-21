@@ -9,32 +9,39 @@
 
 namespace DSPHeaders {
 
+/// Types of interpolation that can be used to generate sample values using floating-point indices.
+enum struct DelayBufferInterpolator {
+  linear,
+  cubic4thOrder
+};
+
 /**
  Circular buffer that holds a maximum number of samples. It manages a write position which is where new samples are
  added to the buffer. Reading takes place some samples before the current write position with interpolation
  being used to generate the sample value. This only works as long as each sample is written at a fixed sample rate so
  that a delay in seconds can be calculated as N number of samples in the past.
 
+ The interpolation is chosen at compile time by the `InterpolatorKind` template parameter so that `read` calls the
+ interpolator directly and the compiler can inline it.
+
  This buffer is not thread-safe. It is to be used in the rendering flow of one channel of audio.
  */
-template <typename ValueType>
+template <typename ValueType, DelayBufferInterpolator InterpolatorKind = DelayBufferInterpolator::linear>
 class DelayBuffer {
 public:
-  /// Types of interpolation that can be used to generate sample values using floating-point indices.
-  enum struct Interpolator {
-    linear,
-    cubic4thOrder
-  };
+  /// Alias so that `DelayBuffer<T>::Interpolator::linear` continues to name the interpolation kinds.
+  using Interpolator = DelayBufferInterpolator;
+
+  /// The interpolation applied by `read`.
+  static constexpr Interpolator interpolator = InterpolatorKind;
 
   /**
    Construct new buffer that can hold given number of samples.
 
    @param sizeInSamples capacity of the buffer
-   @param kind the interpolation to apply to the samples. Default is linear.
    */
-  DelayBuffer(double sizeInSamples, Interpolator kind = Interpolator::linear) noexcept :
-  buffer_(smallestPowerOf2For(sizeInSamples), ValueType{0.0}), writePos_{0}, wrapMask_{buffer_.size() - 1},
-  interpolatorProc_{interpolator(kind)} {}
+  DelayBuffer(double sizeInSamples) noexcept :
+  buffer_(smallestPowerOf2For(sizeInSamples), ValueType{0.0}), writePos_{0}, wrapMask_{buffer_.size() - 1} {}
 
   /**
    Wipe the buffer contents by filling it with zeros.
@@ -78,18 +85,16 @@ public:
   ValueType read(ValueType delay) const noexcept {
     // Convert delay distance into whole and partial components.
     auto offset = int(delay);
-    return (this->*interpolatorProc_)(offset, delay - offset);
+    if constexpr (InterpolatorKind == Interpolator::cubic4thOrder) {
+      return cubic4thOrderInterpolate(offset, delay - offset);
+    } else {
+      return linearInterpolate(offset, delay - offset);
+    }
   }
 
 private:
-  using InterpolatorProc = ValueType (DelayBuffer::*)(ssize_t, ValueType) const noexcept;
-
   static size_t smallestPowerOf2For(double value) noexcept {
     return size_t(std::pow(2.0, std::ceil(std::log2(std::fmax(value, 1.0)))));
-  }
-
-  static InterpolatorProc interpolator(Interpolator kind) noexcept {
-    return kind == Interpolator::linear ? &DelayBuffer::linearInterpolate : &DelayBuffer::cubic4thOrderInterpolate;
   }
 
   /**
@@ -124,7 +129,6 @@ private:
   std::vector<ValueType> buffer_;
   size_t writePos_;
   size_t wrapMask_;
-  InterpolatorProc interpolatorProc_;
 };
 
 } // end namespace DSPHeaders
