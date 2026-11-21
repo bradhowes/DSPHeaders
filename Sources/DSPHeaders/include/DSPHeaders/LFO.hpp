@@ -98,10 +98,12 @@ public:
   ValueType value() const noexcept { return generate(phase_); }
 
   /// @returns current value of the oscillator that is 90° ahead of what `value()` returns
-  ValueType quadPhaseValue() const noexcept { return generate(wrappedModuloCounter(phase_ + 0.25)); }
+  ValueType quadPhaseValue() const noexcept { return generate(wrappedModuloCounter(phase_ + ValueType{0.25})); }
 
   /// @returns current value of the oscillator that is 90° behind what `value()` returns
-  ValueType negativeQuadPhaseValue() const noexcept { return generate(wrappedModuloCounter(phase_ + 0.75)); }
+  ValueType negativeQuadPhaseValue() const noexcept {
+    return generate(wrappedModuloCounter(phase_ + ValueType{0.75}));
+  }
 
   /**
    Increment the oscillator to the next value.
@@ -144,16 +146,18 @@ private:
   static ValueType wrappedModuloCounter(ValueType counter) noexcept {
     // Fast paths for values within one cycle of the normalized range. These are the common cases -- phase increments
     // and the quad-phase offsets -- and they produce the same results as `fmod` without the library call.
-    if (counter >= 0.0) {
-      if (counter < 1.0) return counter;
-      if (counter < 2.0) return counter - 1.0;
-    } else if (counter > -1.0) {
+    constexpr ValueType zero{0.0};
+    constexpr ValueType one{1.0};
+    if (counter >= zero) {
+      if (counter < one) return counter;
+      if (counter < ValueType{2.0}) return counter - one;
+    } else if (counter > -one) {
       return wrappedNegativeCounter(counter);
     }
 
-    if (!std::isfinite(counter)) return 0.0;
-    counter = std::fmod(counter, ValueType{1.0});
-    return counter < 0.0 ? wrappedNegativeCounter(counter) : counter;
+    if (!std::isfinite(counter)) return zero;
+    counter = std::fmod(counter, one);
+    return counter < zero ? wrappedNegativeCounter(counter) : counter;
   }
 
   /**
@@ -164,8 +168,8 @@ private:
    @returns the shifted value in [0, 1)
    */
   static ValueType wrappedNegativeCounter(ValueType counter) noexcept {
-    counter += 1.0;
-    return counter < 1.0 ? counter : 0.0;
+    counter += ValueType{1.0};
+    return counter < ValueType{1.0} ? counter : ValueType{0.0};
   }
 
   static ValueType sineValue(ValueType counter) noexcept {
@@ -176,7 +180,9 @@ private:
   static ValueType triangleValue(ValueType counter) noexcept {
     return DSP::unipolarToBipolar(std::abs(DSP::unipolarToBipolar(counter)));
   }
-  static ValueType squareValue(ValueType counter) noexcept { return counter >= 0.5 ? 1.0 : -1.0; }
+  static ValueType squareValue(ValueType counter) noexcept {
+    return counter >= ValueType{0.5} ? ValueType{1.0} : ValueType{-1.0};
+  }
 
   ValueType sampleRate_;
   LFOWaveform waveform_;

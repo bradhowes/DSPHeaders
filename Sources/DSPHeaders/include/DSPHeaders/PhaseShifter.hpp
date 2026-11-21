@@ -128,7 +128,7 @@ private:
   void updateCoefficients(ValueType modulation) noexcept {
     for (auto index = 0; index < BandCount; ++index) {
       auto const& band = bands_[index];
-      double frequency = DSP::bipolarModulation(modulation, band.frequencyMin, band.frequencyMax);
+      ValueType frequency = DSP::bipolarModulation(modulation, band.frequencyMin, band.frequencyMax);
       filters_[index].setCoefficients(Biquad::Coefficients<ValueType>::APF1(sampleRate_, frequency));
     }
 

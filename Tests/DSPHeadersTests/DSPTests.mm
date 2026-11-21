@@ -87,20 +87,63 @@ using namespace DSPHeaders;
   XCTAssertEqualWithAccuracy((1.0 - 0.9) * 1.0 + 0.9 * 2.0, v, epsilon);
 }
 
+- (void)testFloatInputsStayFloat {
+  static_assert(std::is_same_v<decltype(DSP::decibelToLinear(1.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::unipolarToBipolar(1.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::bipolarToUnipolar(1.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::unipolarModulation(1.0f, 2.0f, 3.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::bipolarModulation(1.0f, 2.0f, 3.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::Interpolation::linear(0.5f, 1.0f, 2.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::Interpolation::cubic4thOrder(0.5f, 1.0f, 2.0f, 3.0f, 4.0f)), float>);
+  static_assert(std::is_same_v<decltype(DSP::unipolarToBipolar(1.0)), double>);
+
+  XCTAssertEqual(DSP::decibelToLinear(20.0f), 10.0f);
+  XCTAssertEqual(DSP::bipolarModulation(0.0f, -20.0f, 13.0f), -3.5f);
+}
+
+- (void)testFloatInterpolationMatchesDouble {
+  // The float paths, including the single-precision cubic weights table, must agree with the double paths to within
+  // float rounding.
+  for (int step = 0; step < 1000; ++step) {
+    double partial = step / 1000.0;
+    XCTAssertEqualWithAccuracy(DSP::Interpolation::linear(float(partial), 0.25f, 0.75f),
+                               DSP::Interpolation::linear(partial, 0.25, 0.75), 1.0e-6);
+    XCTAssertEqualWithAccuracy(DSP::Interpolation::cubic4thOrder(float(partial), 0.1f, 0.4f, -0.3f, 0.8f),
+                               DSP::Interpolation::cubic4thOrder(partial, 0.1, 0.4, -0.3, 0.8), 1.0e-6);
+  }
+}
+
+- (void)testCubicWeightTables {
+  using DoubleTable = DSP::Interpolation::Cubic4thOrder<double>;
+  using FloatTable = DSP::Interpolation::Cubic4thOrder<float>;
+
+  // The tables are built at compile time.
+  static_assert(DoubleTable::weights_[0][1] == 1.0);
+  static_assert(std::is_same_v<FloatTable::WeightsEntry::value_type, float>);
+
+  // Each float weight is the double weight rounded to float, and the stored table matches the generator.
+  for (size_t index = 0; index < DoubleTable::TableSize; ++index) {
+    for (size_t weight = 0; weight < 4; ++weight) {
+      XCTAssertEqual(FloatTable::weights_[index][weight], float(DoubleTable::weights_[index][weight]));
+      XCTAssertEqual(DoubleTable::weights_[index][weight], DoubleTable::generator(index)[weight]);
+    }
+  }
+}
+
 - (void)testInterpolationGenerator {
-  auto w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder::generator(0);
+  auto w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder<double>::generator(0);
   // std::cout << w4[0] << ' ' << w4[1] << ' ' << w4[2] << ' ' << w4[3] << '\n';
   XCTAssertEqualWithAccuracy(0.0, w4[0], 1.0E-6);
   XCTAssertEqualWithAccuracy(1.0, w4[1], 1.0E-6);
   XCTAssertEqualWithAccuracy(0.0, w4[2], 1.0E-6);
   XCTAssertEqualWithAccuracy(0.0, w4[3], 1.0E-6);
-  w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder::generator(1);
+  w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder<double>::generator(1);
   std::cout << w4[0] << ' ' << w4[1] << ' ' << w4[2] << ' ' << w4[3] << '\n';
   XCTAssertEqualWithAccuracy(-0.000487328, w4[0], 1.0E-6);
   XCTAssertEqualWithAccuracy(0.999998, w4[1], 1.0E-6);
   XCTAssertEqualWithAccuracy(0.000490187, w4[2], 1.0E-6);
   XCTAssertEqualWithAccuracy(-4.76371e-07, w4[3], 1.0E-6);
-  w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder::generator(DSPHeaders::DSP::Interpolation::Cubic4thOrder::TableSize - 1);
+  w4 = DSPHeaders::DSP::Interpolation::Cubic4thOrder<double>::generator(DSPHeaders::DSP::Interpolation::Cubic4thOrder<double>::TableSize - 1);
   std::cout << w4[0] << ' ' << w4[1] << ' ' << w4[2] << ' ' << w4[3] << '\n';
   XCTAssertEqualWithAccuracy(-4.76371e-07, w4[0], 1.0E-6);
   XCTAssertEqualWithAccuracy(0.000490187, w4[1], 1.0E-6);

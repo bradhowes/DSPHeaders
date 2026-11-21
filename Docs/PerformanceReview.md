@@ -60,13 +60,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
 ### Low
 
-6. Float code is silently promoted to `double`.
+6. ~~Float code is silently promoted to `double`.~~ **Fixed 2026-11-21.**
 
    `unipolarToBipolar`, `bipolarToUnipolar`, and `bipolarModulation` use double literals, so float inputs produce `double` results. `Interpolation::linear` and `cubic4thOrder` take `double` parameters, so `DelayBuffer<float>` converts on every read. The cubic weights table holds 32 KB of doubles.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/DSP.hpp:24`
 
    Recommendation: write literals as `ValueType{...}` so float code stays in float.
+
+   Resolution: the `DSP.hpp` helpers are now constrained to `std::floating_point` and compute and return `ValueType`. `Interpolation::linear` and `cubic4thOrder` take their type from `partial` and convert the samples to it, so existing calls with integer sample values still work. `Cubic4thOrder` is now a class template on `ValueType` whose `constexpr` weights table is built at compile time in the header, so float interpolation reads a 16 KB float table instead of converting each double weight; the weights are computed in double and rounded, so the double table is unchanged. This removed the static tables in `DSPHeaders.mm`, which was deleted, and changes `Cubic4thOrder::` to `Cubic4thOrder<T>::` for anyone using it directly. `PhaseShifter` no longer stores the modulated frequency in a `double`, and the LFO's phase wrapping and square wave use `ValueType` literals. The LFO changes, `unipolarToBipolar`, and `bipolarToUnipolar` give bit-identical float results; `bipolarModulation`, `decibelToLinear`, and float interpolation differ by float rounding only. Double results are unchanged. `testFloatInputsStayFloat` checks the return types, `testFloatInterpolationMatchesDouble` checks float interpolation against the double path within 1e-6, and `testCubicWeightTables` checks that each float weight is the rounded double weight.
 
 7. `Accelerated` stores its routines in writable static variables.
 
