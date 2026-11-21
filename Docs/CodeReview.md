@@ -94,4 +94,4 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
 ## Validation
 
-The project was built for testing successfully after the item 1 fix. The remaining findings are behavioral and standards-conformance issues that do not currently cause a build failure.
+All findings have been resolved. After the final fix (item 10), the full `DSPHeaders` test plan ran with all 107 tests passing.
