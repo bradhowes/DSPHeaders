@@ -276,6 +276,66 @@ AURenderPullInputBlock mockPullInput = ^(AudioUnitRenderActionFlags* actionFlags
 //  XCTAssertEqual(self.effect->frameCounts_[4], 508);
 }
 
+- (void)testHostRampDurationIsInFrames {
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+  outputData->mBuffers[0].mData = nil;
+  outputData->mBuffers[1].mData = nil;
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  // A host ramp of 1024 frames with 512-frame render calls must take 2 render calls, not 1024.
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = -1;
+  event.parameterAddress = 1;
+  event.rampDurationSampleFrames = 1024;
+  event.value = 10;
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameterRamp;
+
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, eventList, mockPullInput), 0);
+  XCTAssertEqual(self.effect->paramValues_.back(), 5);
+  XCTAssertEqual(self.effect->rampRemaining(), 1);
+
+  timestamp.mSampleTime += frames;
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, nullptr, mockPullInput), 0);
+  XCTAssertEqual(self.effect->paramValues_.back(), 10);
+  XCTAssertFalse(self.effect->param_.isRamping());
+
+  // A partial final block still counts as a render call: 1025 frames needs 3 calls of 512 frames.
+  XCTAssertEqual(MockEffect::rampFramesToRenderCalls(1025, 512), 3);
+  XCTAssertEqual(MockEffect::rampFramesToRenderCalls(512, 512), 1);
+  XCTAssertEqual(MockEffect::rampFramesToRenderCalls(4, 512), 1);
+  XCTAssertEqual(MockEffect::rampFramesToRenderCalls(0, 512), 0);
+}
+
+- (void)testZeroLengthHostRampIsImmediate {
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+  outputData->mBuffers[0].mData = nil;
+  outputData->mBuffers[1].mData = nil;
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = -1;
+  event.parameterAddress = 1;
+  event.rampDurationSampleFrames = 0;
+  event.value = 10;
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameterRamp;
+
+  // A ramp duration of 0 means an immediate change. It must not underflow into a ~4 billion call ramp.
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, eventList, mockPullInput), 0);
+  XCTAssertEqual(self.effect->paramValues_.back(), 10);
+  XCTAssertEqual(self.effect->rampRemaining(), 0);
+  XCTAssertFalse(self.effect->isRamping());
+}
+
 - (void)testFutureEventDoesNotExceedRenderBlock {
   AudioTimeStamp timestamp = AudioTimeStamp();
   AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];

@@ -98,7 +98,8 @@ public:
    see MIDI and parameter value changes (see `render` below).
    @param format the sample format to expect
    @param maxFramesToRender the maximum number of frames to expect on input
-   @param treeBasedRampDuration the number of frames to ramp a parameter value change
+   @param treeBasedRampDuration the number of render calls to ramp a parameter value change made outside the render
+   thread. Ramps advance once per render call, not per frame.
    */
   void setRenderingFormat(NSInteger busCount, AVAudioFormat* _Nonnull format, AUAudioFrameCount maxFramesToRender,
                           AUAudioFrameCount treeBasedRampDuration = 16) noexcept {
@@ -225,7 +226,21 @@ public:
   /// @returns the ramp duration to use for UI changes
   AUAudioFrameCount treeBasedRampDuration() const noexcept { return treeBasedRampDuration_; }
 
-  /// @returns the max number of frames remaining in any parameter ramping.
+  /**
+   Convert a host ramp duration, which is in sample frames, into the number of render calls to ramp over. Parameter
+   ramps advance once per render call, so a ramp lasts as many calls as it takes to cover its frames, rounded up.
+
+   @param rampFrames the ramp duration in sample frames
+   @param blockFrames the number of frames in the current render call
+   @returns the ramp duration in render calls, or 0 for an immediate change
+   */
+  static constexpr AUAudioFrameCount rampFramesToRenderCalls(AUAudioFrameCount rampFrames,
+                                                             AUAudioFrameCount blockFrames) noexcept {
+    assert(blockFrames > 0);
+    return rampFrames == 0 ? 0 : 1 + (rampFrames - 1) / blockFrames;
+  }
+
+  /// @returns the max number of render calls remaining in any parameter ramping.
   AUAudioFrameCount rampRemaining() const noexcept { return rampRemaining_; }
 
 protected:
@@ -359,7 +374,7 @@ private:
         }
 
         // Process the events for the current time
-        events = processEventsUntil(now, events);
+        events = processEventsUntil(now, events, frameCount);
       }
     }
 
@@ -391,13 +406,20 @@ private:
     }
   }
 
+  /**
+   Apply a parameter change from a render event.
+
+   @param event the parameter event to apply
+   @param duration the number of render calls to ramp over (0 or 1 for an immediate change)
+   */
   void processEventParameterChange(const AUParameterEvent& event, AUAudioFrameCount duration) noexcept {
-    if (setImmediateParameterValue(event.parameterAddress, event.value, duration)) {
+    if (setImmediateParameterValue(event.parameterAddress, event.value, duration) && duration > 0) {
       rampRemaining_ = std::max(duration - 1, rampRemaining_);
     }
   }
 
-  AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now, AURenderEvent const* _Nonnull event) noexcept {
+  AURenderEvent const* _Nullable processEventsUntil(AUEventSampleTime now, AURenderEvent const* _Nonnull event,
+                                                    AUAudioFrameCount blockFrames) noexcept {
     if constexpr (renderLoggingEnabled) os_log_info(log_, "%lu processingEventsUntil BEGIN - %p", renderCounter_, event);
     while (event != nullptr && event->head.eventSampleTime <= now) {
       switch (event->head.eventType) {
@@ -414,7 +436,8 @@ private:
             os_log_info(log_, "AURenderEventParameterRamp - %llu %f %d", event->parameter.parameterAddress,
                         event->parameter.value, event->parameter.rampDurationSampleFrames);
           }
-          processEventParameterChange(event->parameter, event->parameter.rampDurationSampleFrames);
+          processEventParameterChange(event->parameter,
+                                      rampFramesToRenderCalls(event->parameter.rampDurationSampleFrames, blockFrames));
           break;
 
         case AURenderEventMIDI:

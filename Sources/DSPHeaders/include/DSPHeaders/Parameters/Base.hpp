@@ -69,7 +69,7 @@ public:
    Since we are in the render thread, we can safely set the ramping now.
 
    @param value the new value to use
-   @param duration the number of frames to transition over
+   @param duration the number of render calls to transition over
    */
   void setImmediate(AUValue value, AUAudioFrameCount duration) noexcept {
     value = transformIn_(value);
@@ -87,7 +87,7 @@ public:
   /**
    Check if there is a new value to ramp to that was set via `setPending`.
 
-   @param duration the number of frames to transition over
+   @param duration the number of render calls to transition over
    */
   bool checkForValueChange(AUAudioFrameCount duration) noexcept {
     auto pending = pendingValue_.load(std::memory_order_relaxed);
@@ -119,7 +119,7 @@ protected:
 
    @param address the AUParameterAddress for the parameter
    @param value the starting value for the parameter
-   @param canRamp if `true` then a parameter change will happen over some number of rendered samples
+   @param canRamp if `true` then a parameter change will happen over some number of render calls
    @param forward a transformation to apply to incoming values before storing in the parameter
    @param reverse a transformation to apply to a held value before it is returned to a caller
    */

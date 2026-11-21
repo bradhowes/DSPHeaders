@@ -19,7 +19,7 @@ public:
 
    @param address the AUParameterAddress for the parameter
    @param milliseconds the starting value for the parameter
-   @param canRamp if `true` then a parameter change will happen over some number of rendered samples
+   @param canRamp if `true` then a parameter change will happen over some number of render calls
    */
   explicit Milliseconds(AUParameterAddress address, AUValue milliseconds = 0.0, bool canRamp = true) noexcept
   : super(address, milliseconds, canRamp, Transformer::passthru, Transformer::passthru) {}
@@ -29,7 +29,7 @@ public:
 
    @param address enumeration that holds an AUParameterAddress value
    @param milliseconds the starting value for the parameter
-   @param canRamp if `true` then a parameter change will happen over some number of rendered samples
+   @param canRamp if `true` then a parameter change will happen over some number of render calls
    */
   template <EnumeratedType T>
   explicit Milliseconds(T address, AUValue milliseconds = 0.0, bool canRamp = true) noexcept

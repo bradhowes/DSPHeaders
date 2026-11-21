@@ -18,7 +18,7 @@ public:
 
    @param address the AUParameterAddress for the parameter
    @param value the starting value for the parameter
-   @param canRamp if `true` then a parameter change will happen over some number of rendered samples
+   @param canRamp if `true` then a parameter change will happen over some number of render calls
    */
   explicit Float(AUParameterAddress address, AUValue value = 0.0, bool canRamp = true) noexcept
   : super(address, value, canRamp, Transformer::passthru, Transformer::passthru) {}
@@ -28,7 +28,7 @@ public:
 
    @param address enumeration that holds an AUParameterAddress value
    @param value the starting value for the parameter
-   @param canRamp if `true` then a parameter change will happen over some number of rendered samples
+   @param canRamp if `true` then a parameter change will happen over some number of render calls
    */
   template <EnumeratedType T>
   explicit Float(T address, AUValue value = 0.0, bool canRamp = true) noexcept
