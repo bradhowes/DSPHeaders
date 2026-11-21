@@ -30,6 +30,13 @@ using namespace DSPHeaders;
   SamplesEqual(phi.value(), 0.25);
 }
 
+- (void)testInitialZeroFrequency {
+  AUValue sampleRate{4.0};
+  Parameters::Float freq{1, 0.0};
+  PhaseIncrement<AUValue> phi{freq, sampleRate};
+  SamplesEqual(phi.value(), 0.0);
+}
+
 - (void)testRamping {
   AUValue sampleRate{4.0};
   Parameters::Float freq{1, 1.0};

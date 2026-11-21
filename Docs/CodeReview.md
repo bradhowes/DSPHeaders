@@ -26,13 +26,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
 ### High
 
-3. `PhaseIncrement` reads uninitialized values.
+3. ~~`PhaseIncrement` reads uninitialized values.~~ **Fixed 2026-11-21.**
 
    `cachedFrequency_` and `increment_` have no initializers. The first `value()` call compares the frequency against an indeterminate `cachedFrequency_`; that is undefined behavior. An accidental equality could then return an indeterminate increment.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/PhaseIncrement.hpp:59`
 
-   Recommendation: initialize both members, or calculate the initial increment in the constructor.
+   Resolution: the cached frequency and increment now initialize to zero. `testInitialZeroFrequency` verifies the first read is well-defined when the initial frequency is zero.
 
 4. `LowPassFilter` leaks its Accelerate setup and has undefined ownership semantics.
 

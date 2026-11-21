@@ -56,8 +56,8 @@ private:
 
   Parameters::Float& frequency_;
   ValueType sampleRate_;
-  ValueType cachedFrequency_;
-  ValueType increment_;
+  ValueType cachedFrequency_{0.0};
+  ValueType increment_{0.0};
 };
 
 } // end namespace DSPHeaders
