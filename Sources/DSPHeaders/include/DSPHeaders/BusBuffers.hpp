@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cassert>
+#include <span>
 #include <type_traits>
 #include <vector>
 
@@ -20,6 +21,15 @@ namespace DSPHeaders {
  Note that this class only holds a refernce to the collection that is used. The collection must not go out of scope
  while an instance of this class exists. In `EventProcessor` it is only used to pass the sample pointers to the
  kernel for rendering.
+
+ The per-sample `add` methods check for missing buffers on every call. For tight per-sample loops that the compiler
+ can vectorize, obtain each channel once per render block with `channel` and loop over the returned span:
+
+ ```
+ auto in = ins.channel(0, frameCount);
+ auto out = outs.channel(0, frameCount);
+ for (size_t frame = 0; frame < out.size(); ++frame) out[frame] = gain * in[frame];
+ ```
  */
 class BusBuffers {
 public:
@@ -117,13 +127,32 @@ public:
    @param oddSample the sample to update odd (1 (R), 3, 5....) channels with
    */
   void addAlternating(AUAudioFrameCount frame, AUValue evenSample, AUValue oddSample) noexcept {
+    // Walk the channels in even/odd pairs so that each channel's sample is known without a per-channel modulo.
     size_t size{buffers_.size()};
-    for (size_t index = 0; index < size; ++index) {
-      if (buffers_[index] != nullptr) {
-        buffers_[index][frame] += (index % 2) ? oddSample : evenSample;
-      }
+    size_t index = 0;
+    for (; index + 1 < size; index += 2) {
+      if (buffers_[index] != nullptr) buffers_[index][frame] += evenSample;
+      if (buffers_[index + 1] != nullptr) buffers_[index + 1][frame] += oddSample;
     }
+    if (index < size && buffers_[index] != nullptr) buffers_[index][frame] += evenSample;
   }
+
+  /**
+   Obtain the samples of one channel for a render block. Call this once per block, outside of any per-sample loop, so
+   that the loop works on a plain span with no per-sample indirection or null checks.
+
+   @param index the index of the channel to get
+   @param frameCount the number of frames in the render block
+   @returns span over the channel's samples, or an empty span if the channel has no buffer
+   */
+  std::span<AUValue> channel(size_t index, AUAudioFrameCount frameCount) const noexcept {
+    assert(index < buffers_.size());
+    AUValue* ptr = buffers_[index];
+    return ptr != nullptr ? std::span<AUValue>{ptr, frameCount} : std::span<AUValue>{};
+  }
+
+  /// @returns the channel sample pointers, for kernels that walk all channels in a block
+  std::span<AUValue* const> channels() const noexcept { return {buffers_.data(), buffers_.size()}; }
 
   /**
    Obtain the sample pointer for the given channel index.

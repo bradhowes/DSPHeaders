@@ -90,13 +90,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `forceMinToZero` now uses `std::abs(value) <= noiseFloor`. Results are identical except that `-0.0` now returns `+0.0`, which compares equal and is inaudible. NaN still passes through unchanged. `testForceMinToZero` compares the new code with the previous implementation at zero, values just inside and outside the noise floor, the smallest denormal, normal samples, infinity, and NaN.
 
-9. The per-sample `BusBuffers` API blocks vectorization.
+9. ~~The per-sample `BusBuffers` API blocks vectorization.~~ **Fixed 2026-11-21.**
 
    `addMono`, `addStereo`, `addAll`, and `addAlternating` null-check on every call and reach the buffers through a reference to a vector. `addAlternating` also computes `index % 2` per channel per sample.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/BusBuffers.hpp:75`
 
    Recommendation: add accessors that return channel pointers or spans once per block so kernels can write tight loops.
+
+   Resolution: `BusBuffers` gains `channel(index, frameCount)`, which returns a `std::span<AUValue>` over one channel's samples (empty if the channel has no buffer), and `channels()`, which returns the channel pointers as a span. Kernels call these once per render block and loop over plain spans, with no per-sample indirection or null checks; the class comment shows the pattern. `addAlternating` now walks channels in even/odd pairs instead of computing `index % 2` per channel. The existing per-sample methods are otherwise unchanged, so current kernels keep working, and the speedup applies as kernels adopt the span accessors. `testChannelSpans` covers the accessors, including a channel without a buffer, and `testAddAlternatingChannelCounts` covers one to five channels with a missing buffer.
 
 10. `processAndRender` has small per-block overhead.
 
