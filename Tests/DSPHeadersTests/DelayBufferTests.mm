@@ -1,6 +1,8 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <algorithm>
+#import <cmath>
 #import <iomanip>
 #import <iostream>
 #import <vector>
@@ -65,8 +67,8 @@ static float epsilon = 1.0E-7;
     linear.write(value);
     cubic.write(value);
   }
-  XCTAssertEqualWithAccuracy(linear.read(1.5), 0.625, epsilon);
-  XCTAssertEqualWithAccuracy(cubic.read(1.5), 0.90625, epsilon);
+  XCTAssertEqualWithAccuracy(linear.read(2.5), 0.875, epsilon);
+  XCTAssertEqualWithAccuracy(cubic.read(2.5), 0.90625, epsilon);
 }
 
 - (void)testWriteWrapping {
@@ -113,17 +115,55 @@ static float epsilon = 1.0E-7;
   buffer.write(0.75);
   buffer.write(0.50);
   buffer.write(0.25);
-  std::cout << std::setprecision(16) <<  buffer.read(1.9) << '\n';
+  // Offsets 0..7 now hold 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25, 0.0.
   XCTAssertEqualWithAccuracy(buffer.read(0.0), 0.250, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(0.5), 0.625, epsilon);
   XCTAssertEqualWithAccuracy(buffer.read(1.0), 0.500, epsilon);
   XCTAssertEqualWithAccuracy(buffer.read(2.0), 0.750, epsilon);
   XCTAssertEqualWithAccuracy(buffer.read(3.0), 1.000, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(1.1), 0.777135768905, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(1.2), 0.807750061154, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(1.5), 0.90625, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(1.8), 0.981966783525, epsilon);
-  XCTAssertEqualWithAccuracy(buffer.read(1.9), 0.995195654919, epsilon);
+
+  // Under one sample there is no newer sample, so the newest is repeated: weights at 0.5 are
+  // (-0.0625, 0.5625, 0.5625, -0.0625) over (0.25, 0.25, 0.5, 0.75).
+  XCTAssertEqualWithAccuracy(buffer.read(0.5), 0.359375, epsilon);
+
+  // Offsets 0..3 lie on a line rising 0.25 per sample, which Catmull-Rom reproduces exactly, so these are
+  // 0.5 + 0.25 * t where the weights table rounds t down to a multiple of 1/1024.
+  XCTAssertEqualWithAccuracy(buffer.read(1.1), 0.5 + 0.25 * (102.0 / 1024.0), epsilon);
+  XCTAssertEqualWithAccuracy(buffer.read(1.2), 0.5 + 0.25 * (204.0 / 1024.0), epsilon);
+  XCTAssertEqualWithAccuracy(buffer.read(1.5), 0.625, epsilon);
+  XCTAssertEqualWithAccuracy(buffer.read(1.8), 0.5 + 0.25 * (819.0 / 1024.0), epsilon);
+  XCTAssertEqualWithAccuracy(buffer.read(1.9), 0.5 + 0.25 * (921.0 / 1024.0), epsilon);
+
+  // Around the peak the curve rises above the straight line between 0.75 and 1.0.
+  XCTAssertEqualWithAccuracy(buffer.read(2.5), 0.90625, epsilon);
+}
+
+- (void)testCubicMatchesSignalAndIsContinuous {
+  // Fill the buffer with a slow sine so the true value at any fractional delay is known.
+  constexpr int count = 64;
+  constexpr double samplesPerCycle = 32.0;
+  auto signal = [&](double n) { return std::sin(2.0 * M_PI * n / samplesPerCycle); };
+  DelayBuffer<double, DelayBufferInterpolator::cubic4thOrder> cubic(count);
+  DelayBuffer<double> linear(count);
+  for (int n = 0; n < count; ++n) {
+    cubic.write(signal(n));
+    linear.write(signal(n));
+  }
+
+  // Offset k holds sample n = count - 1 - k. Cubic must track the signal and be more accurate than linear.
+  double cubicError = 0.0, linearError = 0.0;
+  for (int step = 40; step <= 400; ++step) {
+    double delay = step / 40.0;
+    double expected = signal(count - 1 - delay);
+    cubicError = std::max(cubicError, std::fabs(cubic.read(delay) - expected));
+    linearError = std::max(linearError, std::fabs(linear.read(delay) - expected));
+  }
+  XCTAssertLessThan(cubicError, 5.0e-4);
+  XCTAssertLessThan(cubicError, linearError / 10.0);
+
+  // No jump when a sweeping delay crosses a whole number of samples.
+  for (int whole = 1; whole < 10; ++whole) {
+    XCTAssertEqualWithAccuracy(cubic.read(double(whole)), cubic.read(whole + 1.0e-9), 1.0e-6, @"whole: %d", whole);
+  }
 }
 
 @end

@@ -111,19 +111,20 @@ private:
   }
 
   /**
-   Obtain a cubic 4th-order interpolated sample for a given index value.
+   Obtain a cubic 4th-order interpolated sample for a given index value. The interpolator works on four samples and
+   produces a value between the second and third, so it is given the samples one newer than `whole` through two
+   older, and interpolates between `whole` and `whole + 1` just like `linearInterpolate`.
 
    @param whole the index of the first sample to use
    @param partial the non-integral part of the index
    @returns interpolated sample result
    */
   ValueType cubic4thOrderInterpolate(ssize_t whole, ValueType partial) const noexcept {
-    // I think the indexing here may be off just slightly, but at 44.1K sampling rate, I'm not that concerned.
-    return (partial == 0.0) ? readFromOffset(whole) : DSP::Interpolation::cubic4thOrder(partial,
-                                                                                        readFromOffset(whole),
-                                                                                        readFromOffset(whole + 1),
-                                                                                        readFromOffset(whole + 2),
-                                                                                        readFromOffset(whole + 3));
+    if (partial == 0.0) return readFromOffset(whole);
+    // For a delay under one sample there is no newer sample, so repeat the newest one.
+    ValueType newer = whole > 0 ? readFromOffset(whole - 1) : readFromOffset(whole);
+    return DSP::Interpolation::cubic4thOrder(partial, newer, readFromOffset(whole), readFromOffset(whole + 1),
+                                             readFromOffset(whole + 2));
   }
 
   std::vector<ValueType> buffer_;
