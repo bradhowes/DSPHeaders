@@ -76,13 +76,13 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: `assignBufferList` now validates everything before changing any state. The buffer list must match the expected channel count, and its data pointers must be either all non-null or all null. For in-place rendering, the source must have a matching buffer count and non-null data for every channel. `testInPlaceRendering`, `testPartiallyPopulatedBufferList`, and `testInvalidInPlaceSource` cover these cases.
 
-9. The intrusive reference count is not safe for concurrent retain and release operations.
+9. ~~The intrusive reference count is not safe for concurrent retain and release operations.~~ **Fixed 2026-11-21.**
 
    The load/compare/decrement sequence is not one atomic ownership transition. Concurrent releases can leak an object or access it after another thread has deleted it.
 
    Location: `Sources/DSPHeaders/include/DSPHeaders/IntrusiveReferenceCounted.hpp:23`
 
-   Recommendation: if cross-thread ownership is supported, implement release with an atomic `fetch_sub`-style transition and appropriate ordering. Otherwise, document the type as single-thread-only and avoid suggesting concurrent safety through `std::atomic`.
+   Resolution: retain is now a relaxed `fetch_add`, and release is a single acquire-release `fetch_sub` that deletes only when it drops the last reference. Release also now deletes through `T*` rather than the base pointer, since the base class has no virtual destructor. `testRetainRelease` and `testConcurrentRetainRelease` verify that an instance is deleted exactly once, including under concurrent retain and release from multiple threads.
 
 10. The public headers rely on non-standard C++ facilities.
 
