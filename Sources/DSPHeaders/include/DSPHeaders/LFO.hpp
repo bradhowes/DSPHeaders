@@ -128,12 +128,30 @@ private:
   }
 
   static ValueType wrappedModuloCounter(ValueType counter) noexcept {
-    if (!std::isfinite(counter)) return 0.0;
-    if (counter >= 1.0 || counter < 0.0) {
-      counter = std::fmod(counter, ValueType{1.0});
-      if (counter < 0.0) counter += 1.0;
+    // Fast paths for values within one cycle of the normalized range. These are the common cases -- phase increments
+    // and the quad-phase offsets -- and they produce the same results as `fmod` without the library call.
+    if (counter >= 0.0) {
+      if (counter < 1.0) return counter;
+      if (counter < 2.0) return counter - 1.0;
+    } else if (counter > -1.0) {
+      return wrappedNegativeCounter(counter);
     }
-    return counter;
+
+    if (!std::isfinite(counter)) return 0.0;
+    counter = std::fmod(counter, ValueType{1.0});
+    return counter < 0.0 ? wrappedNegativeCounter(counter) : counter;
+  }
+
+  /**
+   Shift a value in (-1, 0) into [0, 1). For a tiny negative value, adding 1 rounds up to exactly 1, which is outside
+   the normalized range; that case becomes 0, the equivalent phase.
+
+   @param counter the value to shift
+   @returns the shifted value in [0, 1)
+   */
+  static ValueType wrappedNegativeCounter(ValueType counter) noexcept {
+    counter += 1.0;
+    return counter < 1.0 ? counter : 0.0;
   }
 
   static ValueType sineValue(ValueType counter) noexcept {
