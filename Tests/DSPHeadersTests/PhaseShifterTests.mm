@@ -89,6 +89,35 @@ makeFrequencyBands()
   }];
 }
 
+- (void)testSetIntensityUpdatesOutput {
+  // A shifter whose intensity is changed after construction must match one constructed with that intensity, which
+  // requires `setIntensity` to refresh the cached output scale.
+  PhaseShifter<float> constructed{PhaseShifter<float>::ideal, 44100.0, 0.5};
+  PhaseShifter<float> changed{PhaseShifter<float>::ideal, 44100.0, 1.0};
+  changed.setIntensity(0.5);
+
+  for (int sample = 0; sample < 1000; ++sample) {
+    float input = std::sin(sample / 100.0f * float(M_PI) * 2.0f);
+    float modulation = std::sin(sample / 250.0f);
+    XCTAssertEqual(constructed.process(modulation, input), changed.process(modulation, input), @"sample: %d", sample);
+  }
+}
+
+- (void)testResetMatchesNewInstance {
+  PhaseShifter<float> fresh{PhaseShifter<float>::ideal, 44100.0, 1.0};
+  PhaseShifter<float> reused{PhaseShifter<float>::ideal, 44100.0, 1.0};
+  for (int sample = 0; sample < 500; ++sample) {
+    reused.process(std::sin(sample / 70.0f), std::sin(sample / 30.0f));
+  }
+  reused.reset();
+
+  for (int sample = 0; sample < 1000; ++sample) {
+    float input = std::sin(sample / 100.0f * float(M_PI) * 2.0f);
+    float modulation = std::sin(sample / 250.0f);
+    XCTAssertEqual(fresh.process(modulation, input), reused.process(modulation, input), @"sample: %d", sample);
+  }
+}
+
 - (void)testConstructionFromTemporaryFrequencyBands {
   PhaseShifter<double> phaseShifter{makeFrequencyBands(), 44100.0, 1.0, 1};
   XCTAssertTrue(std::isfinite(phaseShifter.process(0.0, 1.0)));

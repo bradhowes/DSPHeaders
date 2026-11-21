@@ -48,13 +48,15 @@ This review covers the C++ and Objective-C++ library sources, with emphasis on c
 
    Resolution: the interpolator is now a template parameter, `DelayBuffer<ValueType, DelayBufferInterpolator InterpolatorKind = linear>`, and `read` selects it with `if constexpr`, so the call is direct and inlinable. The enum moved to namespace scope as `DelayBufferInterpolator`; `DelayBuffer<T>::Interpolator` remains as an alias and `interpolator` exposes the chosen kind. This is a source-breaking change: the constructor no longer takes an interpolator, so code such as `DelayBuffer<float>(size, DelayBuffer<float>::Interpolator::cubic4thOrder)` must become `DelayBuffer<float, DelayBufferInterpolator::cubic4thOrder>(size)`, and old calls fail to compile rather than silently using linear. Interpolated values are unchanged; the existing interpolation tests pass with their original expected values, and `testInterpolatorSelection` checks the default, the exposed kind, and that each kind interpolates differently.
 
-5. `PhaseShifter::process` recomputes values per sample that change only when coefficients are updated.
+5. ~~`PhaseShifter::process` recomputes values per sample that change only when coefficients are updated.~~ **Fixed 2026-11-21.**
 
    The gamma products depend only on each filter's `a0`, which changes only in `updateCoefficients` (every 10 samples by default), yet they are recomputed every sample. The `1.0` literal in the output denominator also promotes that expression to `double`.
 
    Locations: `Sources/DSPHeaders/include/DSPHeaders/PhaseShifter.hpp:107`, `Sources/DSPHeaders/include/DSPHeaders/PhaseShifter.hpp:118`
 
    Recommendation: compute `gammas_` and the reciprocal of `1 + intensity_ * gammas_.back()` in `updateCoefficients`, and multiply by the cached reciprocal per sample.
+
+   Resolution: `updateCoefficients` now computes `gammas_` and caches `outputScale_`, the reciprocal of `1 + intensity_ * gammas_.back()` computed in `ValueType`. `setIntensity` refreshes the cached scale. `process` keeps only the per-sample weighted sum and multiplies by the cached scale instead of dividing. Output changes only by rounding from the reciprocal and from dropping the `double` promotion; `testPhaseShifters` still matches Pirkle's implementation within 1e-5. `testSetIntensityUpdatesOutput` fails if `setIntensity` stops refreshing the cache (verified by temporarily removing the refresh), and `testResetMatchesNewInstance` checks that `reset` rebuilds the cached values.
 
 ### Low
 

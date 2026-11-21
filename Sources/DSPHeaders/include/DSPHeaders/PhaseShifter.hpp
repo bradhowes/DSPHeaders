@@ -74,7 +74,10 @@ public:
 
    @param intensity new value to use
    */
-  void setIntensity(double intensity) noexcept { intensity_ = intensity; }
+  void setIntensity(double intensity) noexcept {
+    intensity_ = intensity;
+    updateOutputScale();
+  }
 
   /**
    Reset the audio processor.
@@ -103,19 +106,15 @@ public:
       filterUpdateCounter_ = 0;
     }
 
-    // Calculate gamma values from the individual filters.
-    for (size_t index = 1; index <= filters_.size(); ++index) {
-      gammas_[index] = filters_[filters_.size() - index].gainValue() * gammas_[index - 1];
-    }
-
-    // Calculate weighted state sum of past values to mix with input
+    // Calculate weighted state sum of past values to mix with input. The gamma values only change with the filter
+    // coefficients, so they are calculated in `updateCoefficients`.
     ValueType weightedSum = 0.0;
     for (auto index = 0; index < filters_.size(); ++index) {
       weightedSum += gammas_[filters_.size() - index - 1] * filters_[index].storageComponent();
     }
 
     // Finally, apply the filters in series
-    ValueType output = (input + intensity_ * weightedSum) / (1.0 + intensity_ * gammas_.back());
+    ValueType output = (input + intensity_ * weightedSum) * outputScale_;
     for (auto& filter : filters_) {
       output = filter.transform(output);
     }
@@ -132,6 +131,18 @@ private:
       double frequency = DSP::bipolarModulation(modulation, band.frequencyMin, band.frequencyMax);
       filters_[index].setCoefficients(Biquad::Coefficients<ValueType>::APF1(sampleRate_, frequency));
     }
+
+    // Calculate gamma values from the individual filters.
+    for (size_t index = 1; index <= filters_.size(); ++index) {
+      gammas_[index] = filters_[filters_.size() - index].gainValue() * gammas_[index - 1];
+    }
+
+    updateOutputScale();
+  }
+
+  /// Cache the reciprocal of the output normalization, which depends on the intensity and the final gamma value.
+  void updateOutputScale() noexcept {
+    outputScale_ = ValueType{1.0} / (ValueType{1.0} + intensity_ * gammas_.back());
   }
 
   FrequencyBands bands_;
@@ -141,6 +152,7 @@ private:
   int filterUpdateCounter_{0};
   std::array<AllPassFilter, BandCount> filters_{};
   std::array<ValueType, BandCount + 1> gammas_{1.0};
+  ValueType outputScale_{1.0};
 };
 
 } // end namespace DSPHeaders
