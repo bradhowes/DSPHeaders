@@ -31,11 +31,14 @@ using namespace DSPHeaders;
 
 - (void)testConstantOperators {
   auto tmp1 = 0_F;
-  static_assert(std::is_same_v<decltype(tmp1), double> == true);
+  static_assert(std::is_same_v<decltype(tmp1), long double> == true);
   auto tmp2 = 123123123123_F;
-  static_assert(std::is_same_v<decltype(tmp2), double> == true);
+  static_assert(std::is_same_v<decltype(tmp2), long double> == true);
   auto tmp3 = 0.1234_F;
-  static_assert(std::is_same_v<decltype(tmp3), double> == true);
+  static_assert(std::is_same_v<decltype(tmp3), long double> == true);
+
+  float tmp4 = 0.1234_F;
+  double tmp5 = 0.1234_F;
 }
 
 @end

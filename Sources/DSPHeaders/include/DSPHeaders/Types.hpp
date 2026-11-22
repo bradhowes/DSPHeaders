@@ -15,10 +15,10 @@ template <EnumeratedType T>
 constexpr auto valueOf(T index) noexcept { return static_cast<typename std::underlying_type<T>::type>(index); };
 
 /// Literal operator that generates `Float` values from the literal content.
-constexpr double operator ""_F(long double value) { return double(value); }
+constexpr long double operator ""_F(long double value) { return value; }
 
 /// Literal operator that generates `Float` values from the literal content.
-constexpr double operator ""_F(unsigned long long value) { return double(value); }
+constexpr long double operator ""_F(unsigned long long value) { return value; }
 
 /**
  Generic method that invokes checked or unchecked indexing on a container based on the DEBUG compile flag. When DEBUG
