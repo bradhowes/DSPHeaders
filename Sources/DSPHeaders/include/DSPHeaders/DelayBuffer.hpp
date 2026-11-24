@@ -77,12 +77,31 @@ public:
   }
 
   /**
-   Obtain a sample from the buffer using interpolation method defined at construction.
+   The largest delay that `read` supports. The interpolators read samples beyond the whole part of the delay (one more
+   for linear, two more for cubic), and those samples must still be in the buffer.
+
+   @returns the maximum delay in samples
+   */
+  ValueType maxDelay() const noexcept {
+    return ValueType(buffer_.size() - (InterpolatorKind == Interpolator::cubic4thOrder ? 2 : 1));
+  }
+
+  /**
+   Obtain a sample from the buffer using the interpolation method chosen by the `InterpolatorKind` template parameter.
+   The delay is clamped to [0, `maxDelay()`], and a NaN delay is treated as 0, so that no delay value reads outside
+   the buffer or the interpolation table.
 
    @param delay distance from the current write position to return
    @return interpolated sample from buffer
    */
   ValueType read(ValueType delay) const noexcept {
+    // Written so that NaN fails the first comparison and becomes 0; `std::clamp` would pass NaN through.
+    if (!(delay > ValueType{0})) [[unlikely]] {
+      delay = ValueType{0};
+    } else if (delay > maxDelay()) [[unlikely]] {
+      delay = maxDelay();
+    }
+
     // Convert delay distance into whole and partial components.
     auto offset = int(delay);
     if constexpr (InterpolatorKind == Interpolator::cubic4thOrder) {

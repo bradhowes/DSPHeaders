@@ -204,13 +204,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     ~~A related defect: `detail::log_integral_check` returns 0 for negative integers, so `ConstMath::log(-5)` and `log10(-5)` return 0, while `log(-5.0)` correctly returns NaN.~~ **Fixed 2026-11-24.** Its integer branch special-cased 0 and values above 1 and returned 0 for everything else. `log_integral_check` now converts the argument to `double` and calls `log_check`, which already gives -inf for 0, 0 for 1, and NaN for negative values, so integers and floating-point values follow one path. Results for positive integers are unchanged. `testLogOfIntegerDomainEdges` checks negative, zero, one, and two against the floating-point results. Its three negative-value assertions fail without the fix. The full test plan passes with 144 tests.
 
-20. `DelayBuffer::read` has no defined behavior outside `[0, size() - 3]`.
+20. ~~`DelayBuffer::read` has no defined behavior outside `[0, size() - 3]`.~~ **Fixed 2026-11-24.**
 
     A negative delay makes `partial` negative, and in the cubic path `size_t(partial * TableSize)` converts a negative float to an unsigned type, which is undefined behavior. In release builds it reads outside the weights table. A delay at or beyond `size()` silently wraps to recent samples.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/DelayBuffer.hpp:85`
 
     Recommendation: document the precondition and `assert` it, or clamp the delay.
+
+    Resolution: `read` now clamps the delay to [0, `maxDelay()`], and treats NaN as 0. `std::clamp` would pass NaN through to the `int` conversion, so the clamp is written with comparisons that NaN fails. Clamping, rather than an `assert`, keeps release builds free of undefined behavior on the render thread, at the cost of two predictable comparisons per read. The new `maxDelay()` returns the largest delay whose samples are all in the buffer: `size() - 1` for linear interpolation and `size() - 2` for cubic. (The heading's `size() - 3` was the limit for a fractional cubic delay; a whole delay of `size() - 2` is also valid.) `readFromOffset` keeps its documented wrapping behavior. Delays inside the range give exactly the same results as before. Out-of-range delays now read the newest or oldest usable sample instead of extrapolating, wrapping, or indexing outside the weights table. `testReadClampsDelayToBuffer` covers negative, NaN, oversized, and infinite delays for both interpolators. Without the fix, the linear reads return 8.5 and 3.0 instead of 8, and the cubic interpolator's `assert` aborts the test process on an out-of-range table index. The full test plan passes with 145 tests.
 
 21. `LowPassFilter` can be used before it is configured.
 

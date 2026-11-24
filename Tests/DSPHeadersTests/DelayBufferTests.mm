@@ -5,6 +5,7 @@
 #import <cmath>
 #import <iomanip>
 #import <iostream>
+#import <limits>
 #import <vector>
 
 #import "DSPHeaders/DelayBuffer.hpp"
@@ -164,6 +165,38 @@ static float epsilon = 1.0E-7;
   for (int whole = 1; whole < 10; ++whole) {
     XCTAssertEqualWithAccuracy(cubic.read(double(whole)), cubic.read(whole + 1.0e-9), 1.0e-6, @"whole: %d", whole);
   }
+}
+
+- (void)testReadClampsDelayToBuffer {
+  // Offset k holds the value 8 - k, so the oldest sample (offset 7) is 1 and the newest (offset 0) is 8.
+  DelayBuffer<float> linear(8);
+  DelayBuffer<float, DelayBufferInterpolator::cubic4thOrder> cubic(8);
+  for (int value = 1; value <= 8; ++value) {
+    linear.write(float(value));
+    cubic.write(float(value));
+  }
+
+  // Linear reads one sample past the whole delay and cubic two, so their limits differ.
+  XCTAssertEqual(linear.maxDelay(), 7.0f);
+  XCTAssertEqual(cubic.maxDelay(), 6.0f);
+
+  // Negative and NaN delays read the newest sample instead of outside the buffer or the weights table.
+  const float nan = std::numeric_limits<float>::quiet_NaN();
+  for (float delay : {-0.5f, -3.0f, -1.0e9f, nan}) {
+    XCTAssertEqual(linear.read(delay), 8.0f, @"delay: %f", delay);
+    XCTAssertEqual(cubic.read(delay), 8.0f, @"delay: %f", delay);
+  }
+
+  // Delays past the end read the oldest usable sample instead of wrapping around to recent ones.
+  for (float delay : {7.5f, 8.0f, 100.0f, std::numeric_limits<float>::infinity()}) {
+    XCTAssertEqual(linear.read(delay), 1.0f, @"delay: %f", delay);
+    XCTAssertEqual(cubic.read(delay), 2.0f, @"delay: %f", delay);
+  }
+
+  // Delays inside the range are unchanged.
+  XCTAssertEqualWithAccuracy(linear.read(6.5f), 1.5f, 1.0e-6f);
+  XCTAssertEqual(linear.read(7.0f), 1.0f);
+  XCTAssertEqual(cubic.read(6.0f), 2.0f);
 }
 
 @end
