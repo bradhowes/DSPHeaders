@@ -3,6 +3,7 @@
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 #include <Accelerate/Accelerate.h>
 
 namespace DSPHeaders {

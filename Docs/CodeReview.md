@@ -279,7 +279,11 @@ Changes that affect code using the library:
 
 These changes do not alter behavior unless noted.
 
-- **Missing includes.** `BusBufferFacet.hpp` and `BusSampleBuffer.hpp` use `std::runtime_error` without `<stdexcept>`. `Types.hpp` derives from `std::array` without `<array>`. `ConstMath.hpp` uses `std::numeric_limits` without `<limits>`. All of them compile today only through transitive includes.
+- ~~**Missing includes.** `BusBufferFacet.hpp` and `BusSampleBuffer.hpp` use `std::runtime_error` without `<stdexcept>`. `Types.hpp` derives from `std::array` without `<array>`. `ConstMath.hpp` uses `std::numeric_limits` without `<limits>`. All of them compile today only through transitive includes.~~ **Fixed 2026-11-24.** The listed gaps were already closed:
+  - `BusBufferFacet.hpp` and `BusSampleBuffer.hpp` no longer throw (item 12).
+  - `Types.hpp` and `ConstMath.hpp` gained `<array>` and `<limits>` in commit `0420193`.
+
+  A scan of every header for standard-library names used without their header found two more. `Accelerated.hpp` now includes `<type_traits>` for `std::is_same_v`, and `DelayBuffer.hpp` includes `<algorithm>` for `std::fill`. `LowPassFilter.mm` uses `std::fill_n` through its own header, which includes `<algorithm>`. Every public header now compiles as the only include in a translation unit. The full test plan passes with 153 tests and no warnings.
 - **`std::to_underlying`.** `valueOf` duplicates C++23's `std::to_underlying`, and it has a stray `;` after its body.
 - **`std::bit_ceil`.** `DelayBuffer::smallestPowerOf2For` computes `pow(2, ceil(log2(x)))` in floating point. `std::bit_ceil(size_t(std::ceil(x)))` from `<bit>` is exact and simpler.
 - **Mutable static tables.** `PhaseShifter::ideal` and `nationalSemiconductor` are `inline static` non-`const` globals that any caller can overwrite. Make them `static constexpr FrequencyBands`. `setIntensity` takes a `double` while the member is `ValueType`.
