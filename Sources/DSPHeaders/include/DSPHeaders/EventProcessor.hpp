@@ -138,7 +138,9 @@ public:
    */
   void deallocateRenderResources() noexcept {
     setRendering(false);
-    for (auto& facet : outputFacets_) if (facet.isLinked()) facet.unlink();
+    for (auto& facet : outputFacets_) facet.unlink();
+    // The input facet may point into the bus buffers released below, so it must not stay linked to them.
+    inputFacet_.unlink();
     for (auto& bus : outputBusses_) bus.release();
   }
 
@@ -222,6 +224,10 @@ public:
         os_log_info(log_, "processAndRender END - invalid response from pullInputBlock: %d", status);
         return status;
       }
+    } else {
+      // No upstream input for this render. Drop any link from an earlier render so that the kernel and bypass do not
+      // read that render's buffer list, which the host may have reused or freed.
+      inputFacet_.unlink();
     }
 
     // Apply any paramter changes posted by the UI.

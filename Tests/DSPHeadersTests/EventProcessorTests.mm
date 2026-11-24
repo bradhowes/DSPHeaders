@@ -641,6 +641,64 @@ struct MockInputReadingEffect : public EventProcessor<MockInputReadingEffect>
   }
 }
 
+/// Kernel that records the first input channel pointer it is given for each render.
+struct MockInputRecordingEffect : public EventProcessor<MockInputRecordingEffect>
+{
+  using super = EventProcessor<MockInputRecordingEffect>;
+
+  MockInputRecordingEffect() : super("mock") {}
+
+  void doRendering(BusBuffers ins, BusBuffers, AUAudioFrameCount) { inputs_.push_back(ins[0]); }
+
+  std::vector<AUValue*> inputs_{};
+};
+
+- (void)testRenderWithoutPullInputHasNoStaleInput {
+  MockInputRecordingEffect effect;
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  effect.setRenderingFormat(1, format, frames);
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  // The first render pulls input, so the kernel sees it.
+  XCTAssertEqual(effect.processAndRender(&timestamp, frames, 0, outputData, nullptr, mockPullInput), 0);
+  XCTAssertNotEqual(effect.inputs_.back(), nullptr);
+
+  // A later render without upstream input must not hand the kernel the previous render's input buffers.
+  XCTAssertEqual(effect.processAndRender(&timestamp, frames, 0, outputData, nullptr, nullptr), 0);
+  XCTAssertEqual(effect.inputs_.back(), nullptr);
+
+  // The same holds after render resources are released and allocated again.
+  XCTAssertEqual(effect.processAndRender(&timestamp, frames, 0, outputData, nullptr, mockPullInput), 0);
+  effect.deallocateRenderResources();
+  effect.setRenderingFormat(1, format, frames);
+  XCTAssertEqual(effect.processAndRender(&timestamp, frames, 0, outputData, nullptr, nullptr), 0);
+  XCTAssertEqual(effect.inputs_.back(), nullptr);
+}
+
+- (void)testBypassAfterPullInputRenderEmitsSilenceWithoutInput {
+  self.effect->setBypass(true);
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, nullptr, mockPullInput), 0);
+
+  // With no upstream input on the next render, bypass must emit silence rather than pass through stale input.
+  for (UInt32 channel = 0; channel < outputData->mNumberBuffers; ++channel) {
+    std::fill_n(static_cast<AUValue*>(outputData->mBuffers[channel].mData), frames, 7.0f);
+  }
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, nullptr, nullptr), 0);
+  for (UInt32 channel = 0; channel < outputData->mNumberBuffers; ++channel) {
+    auto ptr = static_cast<AUValue*>(outputData->mBuffers[channel].mData);
+    XCTAssertEqual(std::count(ptr, ptr + frames, 0.0f), frames);
+  }
+}
+
 - (void)testInvalidBufferListReturnsStatus {
   AudioTimeStamp timestamp = AudioTimeStamp();
 

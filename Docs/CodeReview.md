@@ -148,15 +148,17 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Recommendation: call `outputFacet.busBuffers().clear(frameCount)` in that branch (the pointers are already offset), and fix the comment.
 
-    Resolution: when bypassed with no linked input, `makeFrames` now clears the current segment of the output with `outputFacet.busBuffers().clear(frameCount)`, and the comment now describes that. A bypassed instrument now emits silence instead of whatever the buffer held before. Bypass with upstream input is unchanged. `testBypassWithoutInputEmitsSilence` fills the output with a non-zero value and renders a bypassed block split by a mid-block event, so both segments must be cleared. It fails without the fix (one failure per channel). The full test plan passes with 137 tests. Until item 15 is fixed, an input facet left linked from an earlier render still takes the copy branch instead of this one.
+    Resolution: when bypassed with no linked input, `makeFrames` now clears the current segment of the output with `outputFacet.busBuffers().clear(frameCount)`, and the comment now describes that. A bypassed instrument now emits silence instead of whatever the buffer held before. Bypass with upstream input is unchanged. `testBypassWithoutInputEmitsSilence` fills the output with a non-zero value and renders a bypassed block split by a mid-block event, so both segments must be cleared. It fails without the fix (one failure per channel). The full test plan passes with 137 tests. Item 15 later removed the remaining gap, where an input facet left linked from an earlier render took the copy branch instead of this one.
 
-15. `inputFacet_` stays linked to buffers it no longer owns.
+15. ~~`inputFacet_` stays linked to buffers it no longer owns.~~ **Fixed 2026-11-24.**
 
     `inputFacet_` is linked on the first render that has a `pullInputBlock` and is never unlinked: not by `deallocateRenderResources` (which unlinks only the output facets and then frees the buffers), and not when a later render has no `pullInputBlock`. After that, `doRendering` receives input pointers into freed or stale memory, and bypass (`inputFacet_.isLinked()` is still true) copies from them.
 
     Locations: `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:141`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:199`
 
     Recommendation: unlink `inputFacet_` in `deallocateRenderResources`, and at the start of `processAndRender` when `pullInputBlock` is null.
+
+    Resolution: `processAndRender` now unlinks `inputFacet_` whenever a render has no `pullInputBlock`, so the kernel gets null input pointers and bypass emits silence (item 14). `deallocateRenderResources` also unlinks it before releasing the bus buffers. That second unlink is a defensive measure that the public API cannot observe, since the next render either relinks or unlinks the facet. Because `unlink` is now safe on an unlinked facet (item 12), the output facets are unlinked without an `isLinked` check. `testRenderWithoutPullInputHasNoStaleInput` uses a kernel that records its input pointer and checks that a render without upstream input after one with it, including across deallocate and reallocate, gives the kernel no input. `testBypassAfterPullInputRenderEmitsSilenceWithoutInput` checks that bypass then emits silence. Both fail without the fix (4 failed assertions). The full test plan passes with 139 tests.
 
 16. Host `AURenderEventParameter` events are ramped, not applied immediately.
 
