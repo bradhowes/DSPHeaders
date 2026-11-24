@@ -6,6 +6,7 @@
 #include <AVFoundation/AVFoundation.h>
 
 #include <functional>
+#include <utility>
 
 namespace DSPHeaders {
 
@@ -24,19 +25,27 @@ struct TypeErasedKernel
                                                            AURenderPullInputBlock)>;
   TypeErasedKernel() : processAndRender_{} {}
 
-  explicit TypeErasedKernel(ProcessAndRender par) : processAndRender_{par} {}
+  /// Takes the callable by value and moves it into place, so callers passing a temporary or `std::move` avoid a copy.
+  explicit TypeErasedKernel(ProcessAndRender par) : processAndRender_{std::move(par)} {}
 
-  std::function<AUAudioUnitStatus(const AudioTimeStamp*, UInt32, NSInteger, AudioBufferList*, const AURenderEvent*,
-                                  AURenderPullInputBlock)> processAndRender_;
+  ProcessAndRender processAndRender_;
 };
 
 struct RenderBlockShim
 {
-  explicit RenderBlockShim(TypeErasedKernel kernel) : kernel_{kernel} {}
+  /// Takes the kernel by value and moves it into place, so callers passing a temporary or `std::move` avoid a copy.
+  explicit RenderBlockShim(TypeErasedKernel kernel) : kernel_{std::move(kernel)} {}
 
+  /**
+   Obtain a render block that invokes the kernel's `processAndRender_`. The block holds its own copy of the callable,
+   so it remains valid after this shim is destroyed.
+
+   @returns render block for the audio unit, which returns `kAudioUnitErr_Uninitialized` if there is no kernel
+   */
   AUInternalRenderBlock internalRenderBlock() {
     if (kernel_.processAndRender_) {
-      __block auto proc = kernel_.processAndRender_;
+      // Captured by value (copied into the block), not by reference to this shim, which may not outlive the block.
+      auto proc = kernel_.processAndRender_;
       return ^AUAudioUnitStatus(
         AudioUnitRenderActionFlags*,
         const AudioTimeStamp* timestamp,
@@ -55,7 +64,7 @@ struct RenderBlockShim
                                 AudioBufferList*,
                                 const AURenderEvent*,
                                 AURenderPullInputBlock __unsafe_unretained) {
-        return -1;
+        return kAudioUnitErr_Uninitialized;
       };
     }
   }
