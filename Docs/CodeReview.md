@@ -180,13 +180,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: `A0` through `B2` and `rampFactor` are now `[[nodiscard]] constexpr … const noexcept`, and the five-value constructor is `constexpr`. The static generators (`LPF1`, `HPF1`, `LPF2`, `HPF2`, `APF1`, `APF2`) are `[[nodiscard]]`. They stay non-`constexpr` because they call `std::sin`, `std::cos`, and `std::tan`. `operator+=` is `constexpr` and returns `Coefficients&`. A bare `coefficients.A0(1.0);` now draws `-Wunused-result` (checked by compiling such a call against the header). Existing chained use is unchanged, and the only source impact is that warning on calls that never had any effect. `static_assert`s in `BiquadTests.mm` check that the builders chain at compile time, return a modified copy without changing the original, and that `+=` returns a reference. `testBuildersOnConstCoefficients` calls a builder on a `const` instance and chains `+=`. The `static_assert`s and the test do not compile without the change. The full test plan passes with 142 tests.
 
-18. `module.modulemap` omits public headers.
+18. ~~`module.modulemap` omits public headers.~~ **Fixed 2026-11-24.**
 
     `Accelerated.hpp`, `BusBuffers.hpp`, `LowPassFilter.hpp`, and `Parameters/Bool.hpp` are not listed. `Parameters::Bool` is therefore not visible to Swift through the module, and the others are pulled into the module only as non-modular includes, which `-Wnon-modular-include-in-framework-module` reports.
 
     Location: `Sources/DSPHeaders/include/module.modulemap`
 
     Recommendation: list every header under `include/DSPHeaders`, or switch to `umbrella "DSPHeaders"`.
+
+    Resolution: the four missing headers are now listed, keeping the explicit, alphabetical list rather than switching to an umbrella directory. I checked with a file that does `@import DSPHeaders;` and uses `Parameters::Bool`, `LowPassFilter`, and `Accelerated<float>`, compiled with `-fmodules -fcxx-modules -fobjc-arc -Wnon-modular-include-in-module`. Before the change, `Bool` and `LowPassFilter` were not found, and `Accelerated.hpp` and `BusBuffers.hpp` drew four non-modular-include warnings. After it, the file compiles with no diagnostics. There is no automated test: the test target is Objective-C++ that includes headers textually, and SwiftPM does not allow adding a Swift file to it. The full test plan passes with 142 tests. New headers must be added to the module map by hand.
 
 ### Low
 
