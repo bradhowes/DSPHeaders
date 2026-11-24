@@ -5,10 +5,11 @@ SCHEME = DSPHeaders
 XCCOV = xcrun xccov view --report --only-targets
 WORKSPACE = $(PWD)/.workspace
 BUILD_FLAGS = -skipMacroValidation \
-			  -skipPackagePluginValidation \
-			  -enableCodeCoverage YES \
-			  -scheme $(SCHEME) \
-			  -clonedSourcePackagesDirPath "$(WORKSPACE)"
+	      -skipPackagePluginValidation \
+	      -enableCodeCoverage YES \
+	      -collect-test-diagnostics never \
+	      -scheme $(SCHEME) \
+	      -clonedSourcePackagesDirPath "$(WORKSPACE)"
 
 ifeq ($(GITHUB_ENV),)
 XCB = | xcbeautify --renderer github-actions
@@ -18,8 +19,8 @@ default: report
 
 report: percentage-iOS percentage-macOS
 	@if [[ -n "$$GITHUB_ENV" ]]; then \
-        echo "PERCENTAGE=$$(< percentage_macOS.txt)" >> $$GITHUB_ENV; \
-    fi
+          echo "PERCENTAGE=$$(< percentage_macOS.txt)" >> $$GITHUB_ENV; \
+	fi
 
 percentage-iOS: coverage-iOS
 	awk '/ DSPHeaders / { print $$4 }' coverage_iOS.txt > percentage_iOS.txt
