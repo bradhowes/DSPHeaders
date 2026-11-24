@@ -3,6 +3,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <vector>
 
@@ -114,7 +115,7 @@ public:
 
 private:
   static size_t smallestPowerOf2For(double value) noexcept {
-    return size_t(std::pow(2.0, std::ceil(std::log2(std::fmax(value, 1.0)))));
+    return std::bit_ceil(size_t(std::ceil(value)));
   }
 
   /**
