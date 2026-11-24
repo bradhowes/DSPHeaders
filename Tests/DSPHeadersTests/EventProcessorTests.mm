@@ -758,6 +758,25 @@ struct MockInputRecordingEffect : public EventProcessor<MockInputRecordingEffect
   XCTAssertTrue(self.effect->frameCounts_.empty());
 }
 
+- (void)testTooManyFramesIsRejectedBeforePulling {
+  // The capacity check lives here, since a buffer list does not record its capacity for `pullInput` to check.
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:1024];
+  __block bool pulled = false;
+  AURenderPullInputBlock pull = ^AUAudioUnitStatus(AudioUnitRenderActionFlags*, const AudioTimeStamp*,
+                                                   AUAudioFrameCount, NSInteger, AudioBufferList*) {
+    pulled = true;
+    return noErr;
+  };
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  // The effect was configured for at most 512 frames.
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, 513, 0, [buffer mutableAudioBufferList], nullptr, pull),
+                 kAudioUnitErr_TooManyFramesToProcess);
+  XCTAssertFalse(pulled);
+  XCTAssertTrue(self.effect->frameCounts_.empty());
+}
+
 - (void)testDeallocateTwiceIsSafe {
   self.effect->deallocateRenderResources();
   self.effect->deallocateRenderResources();

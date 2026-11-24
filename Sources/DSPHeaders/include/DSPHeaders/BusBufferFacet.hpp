@@ -128,15 +128,20 @@ struct BusBufferFacet {
   }
 
   /**
-   Obtain samples from an upstream node. Output is stored in the AudioBufferList that was installed by `setBufferList`.
+   Obtain samples from an upstream node. Output is stored in the AudioBufferList that was installed by
+   `assignBufferList`.
+
+   The caller must ensure that the buffers can hold `frameCount` frames. An `AudioBufferList` does not record its
+   capacity: `mDataByteSize` holds the size of the current contents, which `setFrameCount` and this method change, so
+   it cannot be used to check capacity. `EventProcessor` checks the frame count against its buffer capacity before
+   pulling.
 
    @param actionFlags render flags from the host
    @param timestamp the current transport time of the samples
    @param frameCount the number of frames to process
    @param inputBusNumber the bus to pull from
    @param pullInputBlock the function to call to do the pulling
-   @returns status from `pullInputBlock`, or an error if there is no block, the facet is not linked, or the buffers
-   are too small
+   @returns status from `pullInputBlock`, or an error if there is no block or the facet is not linked
    */
   AUAudioUnitStatus pullInput(AudioUnitRenderActionFlags* actionFlags, AudioTimeStamp const* timestamp,
                               AUAudioFrameCount frameCount, NSInteger inputBusNumber,
@@ -146,10 +151,6 @@ struct BusBufferFacet {
     }
 
     if (!isLinked()) [[unlikely]] return kAudioUnitErr_Uninitialized;
-    if (frameCount * sizeof(AUValue) > bufferList_->mBuffers[0].mDataByteSize) [[unlikely]] {
-      return kAudioUnitErr_TooManyFramesToProcess;
-    }
-
     setFrameCount(frameCount);
     return pullInputBlock(actionFlags, timestamp, frameCount, inputBusNumber, bufferList_);
   }

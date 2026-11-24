@@ -222,11 +222,13 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: an unconfigured filter now behaves as no filter. `magnitudes` fills the results with 0 dB when there are no coefficients. `apply` copies each input channel to its output channel, skipping missing and in-place buffers, when there is no vDSP setup. `apply` also passes samples through when `ins` or `outs` has a different channel count than the filter was configured for. That replaces an `assert` that left release builds handing vDSP the wrong number of channel buffers. Configured use with matching channels is unchanged, and the existing magnitude and filtering tests pass with their original values. The unused `vForce.h` import is gone, and the detached `filterBadValues` doc comment is now a comment on the lambda. `testUnconfiguredFilterPassesThrough` and `testChannelCountMismatchPassesThrough` cover the new behavior. Both fail against the previous code. The full test plan passes with 147 tests.
 
-22. `BusBufferFacet::pullInput`'s size check can never fail.
+22. ~~`BusBufferFacet::pullInput`'s size check can never fail.~~ **Fixed 2026-11-24.**
 
     `processAndRender` sets the output list's `mDataByteSize` to `frameCount * sizeof(AUValue)` just before `pullInput` compares against it, so the check is always true. It is harmless, since the capacity was already checked against `outputBus.capacity()`, but it suggests a protection that does not exist.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/BusBufferFacet.hpp:155`
+
+    Resolution: the check was worse than dead. It can never fail inside `EventProcessor`, but used directly it rejects valid pulls. `mDataByteSize` holds the size of the current contents, not the capacity. A freshly allocated `AVAudioPCMBuffer` reports 0, so `pullInput` into a new `BusSampleBuffer` always returned `kAudioUnitErr_TooManyFramesToProcess`. After a smaller pull, `pullInput` had also shrunk `mDataByteSize`, so a later, larger pull was rejected even though it fit. An `AudioBufferList` does not record its capacity, so the facet cannot check it. The check is removed, and `pullInput` now documents that the caller must ensure capacity. `EventProcessor` already checks the frame count against its buffer's capacity before pulling. `testPullInputAcceptsLargerFrameCountAfterSmaller` pulls half the capacity and then all of it into a new `BusSampleBuffer`. All five of its assertions fail with the old check, which rejected even the first pull. `testTooManyFramesIsRejectedBeforePulling` covers the `EventProcessor` capacity check, which no test covered before. The full test plan passes with 149 tests.
 
 23. `checkedVectorIndexing` is `noexcept` but may call `at()`.
 

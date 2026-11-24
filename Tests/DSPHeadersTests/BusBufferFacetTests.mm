@@ -255,6 +255,31 @@ private:
   XCTAssertEqual(a.size(), e.size());
 }
 
+- (void)testPullInputAcceptsLargerFrameCountAfterSmaller {
+  // `mDataByteSize` records the frames in the last pull, not the buffer's capacity, so a smaller pull must not cause a
+  // later, larger one that still fits the buffer to be rejected.
+  BusSampleBuffer buffer;
+  buffer.allocate(stereoFormat, maxFrames);
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  XCTAssertEqual(noErr, facet.assignBufferList(buffer.mutableAudioBufferList()));
+
+  __block AUAudioFrameCount pulled = 0;
+  AURenderPullInputBlock pull = ^AUAudioUnitStatus(AudioUnitRenderActionFlags*, const AudioTimeStamp*,
+                                                   AUAudioFrameCount frameCount, NSInteger, AudioBufferList*) {
+    pulled = frameCount;
+    return noErr;
+  };
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  AudioUnitRenderActionFlags flags = 0;
+
+  XCTAssertEqual(noErr, facet.pullInput(&flags, &timestamp, maxFrames / 2, 0, pull));
+  XCTAssertEqual(pulled, maxFrames / 2);
+  XCTAssertEqual(noErr, facet.pullInput(&flags, &timestamp, maxFrames, 0, pull));
+  XCTAssertEqual(pulled, maxFrames);
+  XCTAssertEqual(maxFrames * sizeof(AUValue), buffer.mutableAudioBufferList()->mBuffers[0].mDataByteSize);
+}
+
 - (void)testNullBufferList {
   BusBufferFacet facet;
   facet.setChannelCount(2);
