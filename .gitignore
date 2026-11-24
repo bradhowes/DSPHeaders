@@ -15,3 +15,4 @@ percentage.txt
 percentage_iOS.txt
 percentage_macOS.txt
 .dependencies/
+.workspace/
