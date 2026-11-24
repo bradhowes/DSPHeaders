@@ -699,6 +699,44 @@ struct MockInputRecordingEffect : public EventProcessor<MockInputRecordingEffect
   }
 }
 
+- (void)renderParameterEvent:(AUValue)value {
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:512];
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = -1;
+  event.parameterAddress = 1;
+  event.value = value;
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameter;
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, 512, 0, [buffer mutableAudioBufferList], eventList,
+                                               nullptr), 0);
+}
+
+- (void)testHostParameterEventIsSmoothedOverTreeBasedRampDuration {
+  // By design, a plain host parameter event ramps over the tree-based duration (16 render calls by default).
+  XCTAssertEqual(self.effect->treeBasedRampDuration(), 16);
+  [self renderParameterEvent:16.0];
+  XCTAssertEqual(self.effect->paramValues_.back(), 1);
+  XCTAssertEqual(self.effect->rampRemaining(), 15);
+  XCTAssertTrue(self.effect->param_.isRamping());
+}
+
+- (void)testHostParameterEventIsImmediateWithoutTreeBasedRamp {
+  // A tree-based duration of 0 or 1 applies host parameter events immediately.
+  for (AUAudioFrameCount duration : {0u, 1u}) {
+    self.effect->deallocateRenderResources();
+    AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+    self.effect->setRenderingFormat(1, format, 512, duration);
+    AUValue value = 16.0f + duration;
+    [self renderParameterEvent:value];
+    XCTAssertEqual(self.effect->param_.frameValue(), value);
+    XCTAssertEqual(self.effect->rampRemaining(), 0);
+    XCTAssertFalse(self.effect->param_.isRamping());
+  }
+}
+
 - (void)testInvalidBufferListReturnsStatus {
   AudioTimeStamp timestamp = AudioTimeStamp();
 

@@ -160,13 +160,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: `processAndRender` now unlinks `inputFacet_` whenever a render has no `pullInputBlock`, so the kernel gets null input pointers and bypass emits silence (item 14). `deallocateRenderResources` also unlinks it before releasing the bus buffers. That second unlink is a defensive measure that the public API cannot observe, since the next render either relinks or unlinks the facet. Because `unlink` is now safe on an unlinked facet (item 12), the output facets are unlinked without an `isLinked` check. `testRenderWithoutPullInputHasNoStaleInput` uses a kernel that records its input pointer and checks that a render without upstream input after one with it, including across deallocate and reallocate, gives the kernel no input. `testBypassAfterPullInputRenderEmitsSilenceWithoutInput` checks that bypass then emits silence. Both fail without the fix (4 failed assertions). The full test plan passes with 139 tests.
 
-16. Host `AURenderEventParameter` events are ramped, not applied immediately.
+16. ~~Host `AURenderEventParameter` events are ramped, not applied immediately.~~ **Documented 2026-11-24.**
 
     `processEventsUntil` passes `treeBasedRampDuration_` (16 render calls by default) for plain parameter events, so sample-accurate host automation lands about 16 blocks late. Apple defines `AURenderEventParameter` as an immediate change at `eventSampleTime`; ramps arrive as `AURenderEventParameterRamp`. This may be an intentional smoothing choice, but it is undocumented and differs from what hosts expect.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:431`
 
     Recommendation: pass 0 for `AURenderEventParameter`, or make the duration a documented setting. This changes behavior for the AUv3 effects that use the library.
+
+    Resolution: the ramping is intentional smoothing that avoids zipper noise from stepped automation, so the behavior is kept and is now documented. The `EventProcessor` class comment describes how each kind of parameter change is ramped. It states that `AURenderEventParameter` events are smoothed over `treeBasedRampDuration` render calls despite Apple's definition, and that a `treeBasedRampDuration` of 0 or 1 applies them, and UI changes, immediately. The `setRenderingFormat` documentation and a comment at the event handling now say the same. No code changed. `testHostParameterEventIsSmoothedOverTreeBasedRampDuration` pins the default smoothing, and `testHostParameterEventIsImmediateWithoutTreeBasedRamp` verifies the documented immediate behavior for durations 0 and 1. The full test plan passes with 141 tests.
 
 17. The `Coefficients` builder methods are easy to misuse.
 

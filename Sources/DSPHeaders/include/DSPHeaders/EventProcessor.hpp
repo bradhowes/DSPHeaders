@@ -47,6 +47,17 @@ namespace DSPHeaders {
  - doGetPendingParameterValue [optional] -- read parameter value set outside render loop (AUParameterTree)
  - doMIDIEvent [optional] -- process MIDI v1 message
  - doRenderingStateChanged [optional] -- notification that the rendering state has changed
+
+ Parameter changes are smoothed by ramping between the old and new values. Ramps advance once per render call, not per
+ frame, and only for parameters that can ramp:
+
+ - changes from the parameter tree (UI) ramp over `treeBasedRampDuration` render calls
+ - `AURenderEventParameter` events from the host also ramp over `treeBasedRampDuration` render calls, even though
+   Apple defines them as immediate changes. This deliberate smoothing avoids zipper noise from stepped automation,
+   at the cost of the new value being reached up to `treeBasedRampDuration` render calls after the event's sample time.
+   Pass a `treeBasedRampDuration` of 0 or 1 to `setRenderingFormat` to apply them (and UI changes) immediately.
+ - `AURenderEventParameterRamp` events ramp over the host's requested duration, converted from frames to render calls
+   with `rampFramesToRenderCalls`
  */
 template <typename KernelType>
 class EventProcessor {
@@ -99,7 +110,8 @@ public:
    @param format the sample format to expect
    @param maxFramesToRender the maximum number of frames to expect on input
    @param treeBasedRampDuration the number of render calls to ramp a parameter value change made outside the render
-   thread. Ramps advance once per render call, not per frame.
+   thread or delivered by the host as an `AURenderEventParameter` event. Ramps advance once per render call, not per
+   frame. A value of 0 or 1 applies those changes immediately.
    */
   void setRenderingFormat(NSInteger busCount, AVAudioFormat* _Nonnull format, AUAudioFrameCount maxFramesToRender,
                           AUAudioFrameCount treeBasedRampDuration = 16) noexcept {
@@ -448,6 +460,8 @@ private:
             os_log_info(log_, "AURenderEventParameter - %llu %f", event->parameter.parameterAddress,
                         event->parameter.value);
           }
+          // Deliberately smoothed over the tree-based ramp duration instead of applied immediately. See the class
+          // documentation.
           processEventParameterChange(event->parameter, treeBasedRampDuration_);
           break;
 
