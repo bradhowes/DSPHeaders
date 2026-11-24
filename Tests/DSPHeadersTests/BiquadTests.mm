@@ -46,6 +46,28 @@ using namespace DSPHeaders;
   SamplesEqual(5.0, coefficients.b2);
 }
 
+// The builders work at compile time, return a modified copy, and leave the original unchanged.
+static constexpr auto builtCoefficients = Biquad::Coefficients<double>().A0(1.0).A1(2.0).A2(3.0).B1(4.0).B2(5.0);
+static_assert(builtCoefficients.a0 == 1.0 && builtCoefficients.a1 == 2.0 && builtCoefficients.a2 == 3.0 &&
+              builtCoefficients.b1 == 4.0 && builtCoefficients.b2 == 5.0);
+static_assert(builtCoefficients.A0(9.0).a0 == 9.0 && builtCoefficients.a0 == 1.0);
+static_assert(std::is_same_v<decltype(std::declval<Biquad::Coefficients<double>&>() += builtCoefficients),
+                             Biquad::Coefficients<double>&>);
+
+- (void)testBuildersOnConstCoefficients {
+  // The builders are const, so they can be called on a const instance, which must not change.
+  const Biquad::Coefficients<double> original(1.0, 2.0, 3.0, 4.0, 5.0);
+  auto changed = original.B2(6.0);
+  XCTAssertEqual(changed.b2, 6.0);
+  XCTAssertEqual(original.b2, 5.0);
+
+  // `operator+=` returns the instance so that additions can be chained.
+  Biquad::Coefficients<double> sum;
+  (sum += original) += original;
+  XCTAssertEqual(sum.a0, 2.0);
+  XCTAssertEqual(sum.b2, 10.0);
+}
+
 - (void)testNOP {
   Biquad::Coefficients zeros;
   Biquad::Direct<> foo(zeros);

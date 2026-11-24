@@ -170,13 +170,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: the ramping is intentional smoothing that avoids zipper noise from stepped automation, so the behavior is kept and is now documented. The `EventProcessor` class comment describes how each kind of parameter change is ramped. It states that `AURenderEventParameter` events are smoothed over `treeBasedRampDuration` render calls despite Apple's definition, and that a `treeBasedRampDuration` of 0 or 1 applies them, and UI changes, immediately. The `setRenderingFormat` documentation and a comment at the event handling now say the same. No code changed. `testHostParameterEventIsSmoothedOverTreeBasedRampDuration` pins the default smoothing, and `testHostParameterEventIsImmediateWithoutTreeBasedRamp` verifies the documented immediate behavior for durations 0 and 1. The full test plan passes with 141 tests.
 
-17. The `Coefficients` builder methods are easy to misuse.
+17. ~~The `Coefficients` builder methods are easy to misuse.~~ **Fixed 2026-11-24.**
 
     `A0(…)` through `B2(…)` return a modified copy but are non-`const` and not `[[nodiscard]]`, so `coefficients.A0(1.0);` reads like a setter and silently does nothing.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/Biquad.hpp:65`
 
     Recommendation: mark them `[[nodiscard]] constexpr … const noexcept`. Do the same for `rampFactor`, and make `operator+=` return `Coefficients&`.
+
+    Resolution: `A0` through `B2` and `rampFactor` are now `[[nodiscard]] constexpr … const noexcept`, and the five-value constructor is `constexpr`. The static generators (`LPF1`, `HPF1`, `LPF2`, `HPF2`, `APF1`, `APF2`) are `[[nodiscard]]`. They stay non-`constexpr` because they call `std::sin`, `std::cos`, and `std::tan`. `operator+=` is `constexpr` and returns `Coefficients&`. A bare `coefficients.A0(1.0);` now draws `-Wunused-result` (checked by compiling such a call against the header). Existing chained use is unchanged, and the only source impact is that warning on calls that never had any effect. `static_assert`s in `BiquadTests.mm` check that the builders chain at compile time, return a modified copy without changing the original, and that `+=` returns a reference. `testBuildersOnConstCoefficients` calls a builder on a `const` instance and chains `+=`. The `static_assert`s and the test do not compile without the change. The full test plan passes with 142 tests.
 
 18. `module.modulemap` omits public headers.
 

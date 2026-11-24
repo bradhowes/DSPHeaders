@@ -43,7 +43,7 @@ struct Coefficients {
    @param _b1 B1 coefficient
    @param _b2 B2 coefficient
    */
-  Coefficients(ValueType _a0, ValueType _a1, ValueType _a2, ValueType _b1, ValueType _b2) noexcept
+  constexpr Coefficients(ValueType _a0, ValueType _a1, ValueType _a2, ValueType _b1, ValueType _b2) noexcept
   : a0{_a0}, a1{_a1}, a2{_a2}, b1{_b1}, b2{_b2} {}
 
   Coefficients() = default;
@@ -62,35 +62,35 @@ struct Coefficients {
    @param VV the value to use
    @returns updated Coefficients collection
    */
-  Coefficients A0(ValueType VV) noexcept { return Coefficients(VV, a1, a2, b1, b2); }
+  [[nodiscard]] constexpr Coefficients A0(ValueType VV) const noexcept { return Coefficients(VV, a1, a2, b1, b2); }
   /**
    Set the A1 coefficient, the second coefficient in the numerator
 
    @param VV the value to use
    @returns updated Coefficients collection
    */
-  Coefficients A1(ValueType VV) noexcept { return Coefficients(a0, VV, a2, b1, b2); }
+  [[nodiscard]] constexpr Coefficients A1(ValueType VV) const noexcept { return Coefficients(a0, VV, a2, b1, b2); }
   /**
    Set the A2 coefficient, the third coefficient in the numerator
 
    @param VV the value to use
    @returns updated Coefficients collection
    */
-  Coefficients A2(ValueType VV) noexcept { return Coefficients(a0, a1, VV, b1, b2); }
+  [[nodiscard]] constexpr Coefficients A2(ValueType VV) const noexcept { return Coefficients(a0, a1, VV, b1, b2); }
   /**
    Set the B1 coefficient, the second coefficient in the denominator
 
    @param VV the value to use
    @returns updated Coefficients collection
    */
-  Coefficients B1(ValueType VV) noexcept { return Coefficients(a0, a1, a2, VV, b2); }
+  [[nodiscard]] constexpr Coefficients B1(ValueType VV) const noexcept { return Coefficients(a0, a1, a2, VV, b2); }
   /**
    Set the B2 coefficient, the third coefficient in the denominator
 
    @param VV the value to use
    @returns updated Coefficients collection
    */
-  Coefficients B2(ValueType VV) noexcept { return Coefficients(a0, a1, a2, b1, VV); }
+  [[nodiscard]] constexpr Coefficients B2(ValueType VV) const noexcept { return Coefficients(a0, a1, a2, b1, VV); }
 
   /**
    A 1-pole low-pass filter coefficients generator.
@@ -99,7 +99,7 @@ struct Coefficients {
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
    */
-  static Coefficients LPF1(ValueType sampleRate, ValueType frequency) noexcept {
+  [[nodiscard]] static Coefficients LPF1(ValueType sampleRate, ValueType frequency) noexcept {
     ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     ValueType alpha = (1.0 - gamma) / 2.0f;
@@ -113,7 +113,7 @@ struct Coefficients {
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
    */
-  static Coefficients HPF1(ValueType sampleRate, ValueType frequency) noexcept {
+  [[nodiscard]] static Coefficients HPF1(ValueType sampleRate, ValueType frequency) noexcept {
     ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType gamma = std::cos(theta) / (1.0f + std::sin(theta));
     ValueType alpha = (1.0 + gamma) / 2.0f;
@@ -128,7 +128,7 @@ struct Coefficients {
    @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
-  static Coefficients LPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
+  [[nodiscard]] static Coefficients LPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType d = 1.0f / (resonance * 2.0f);
     ValueType dsinTheta = d * std::sin(theta);
@@ -146,7 +146,7 @@ struct Coefficients {
    @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
-  static Coefficients HPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
+  [[nodiscard]] static Coefficients HPF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType theta = 2.0f * std::numbers::pi_v<ValueType> * frequency / sampleRate;
     ValueType d = 1.0f / (resonance * 2.0f);
     ValueType dsinTheta = d * std::sin(theta);
@@ -163,7 +163,7 @@ struct Coefficients {
    @param frequency the cutoff frequency of the filter
    @returns Coefficients collection
    */
-  static Coefficients APF1(ValueType sampleRate, ValueType frequency) noexcept {
+  [[nodiscard]] static Coefficients APF1(ValueType sampleRate, ValueType frequency) noexcept {
     ValueType tangent = std::tan(std::numbers::pi_v<ValueType> * frequency / sampleRate);
     ValueType alpha = (tangent - 1.0f) / (tangent + 1.0f);
     return Coefficients(alpha, 1.0f, 0.0f, alpha, 0.0f);
@@ -177,7 +177,7 @@ struct Coefficients {
    @param resonance the filter resonance parameter (Q) NOTE: this is a linear value, *not* in dB.
    @returns Coefficients collection
    */
-  static Coefficients APF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
+  [[nodiscard]] static Coefficients APF2(ValueType sampleRate, ValueType frequency, ValueType resonance) noexcept {
     ValueType bandwidth = frequency / resonance;
     ValueType argTan = std::numbers::pi_v<ValueType> * bandwidth / sampleRate;
     constexpr ValueType maxArgTan = 0.95f * std::numbers::pi_v<ValueType> / 2.0f;
@@ -195,7 +195,7 @@ struct Coefficients {
    @param sampleCount the number of samples to ramp over
    @return new Coefficients instance with the delta values to ramp with
    */
-  Coefficients rampFactor(const Coefficients& goal, size_t sampleCount) const noexcept
+  [[nodiscard]] constexpr Coefficients rampFactor(const Coefficients& goal, size_t sampleCount) const noexcept
   {
     ValueType factor = 1.0f / ValueType(sampleCount);
     return Coefficients((goal.a0 - a0) * factor,
@@ -209,14 +209,16 @@ struct Coefficients {
    Add delta values from a `rampFactor` to update the coefficients.
 
    @param change the delta to apply to the current coefficients.
+   @returns reference to this instance
    */
-  void operator +=(const Coefficients& change) noexcept
+  constexpr Coefficients& operator +=(const Coefficients& change) noexcept
   {
     a0 += change.a0;
     a1 += change.a1;
     a2 += change.a2;
     b1 += change.b1;
     b2 += change.b2;
+    return *this;
   }
 
   // Coefficients and state start at zero so that default-initialized instances, such as kernel members not named in a
