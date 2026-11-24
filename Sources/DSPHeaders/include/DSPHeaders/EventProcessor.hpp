@@ -202,7 +202,7 @@ public:
     // use it for an output buffer if necessary.
     auto& outputBus{outputBusses_[outputBusIndex]};
     if (frameCount > outputBus.capacity()) [[unlikely]] {
-      os_log_error(log_, "processAndRender END - too many frames: %d > %d", frameCount, outputBus.capacity());
+      os_log_error(log_, "processAndRender END - too many frames: %u > %u", frameCount, outputBus.capacity());
       return kAudioUnitErr_TooManyFramesToProcess;
     }
 
@@ -233,7 +233,7 @@ public:
       AudioUnitRenderActionFlags actionFlags = 0;
       auto status = inputFacet_.pullInput(&actionFlags, timestamp, frameCount, outputBusNumber, pullInputBlock);
       if (status != noErr) [[unlikely]] {
-        os_log_info(log_, "processAndRender END - invalid response from pullInputBlock: %d", status);
+        os_log_error(log_, "processAndRender END - invalid response from pullInputBlock: %d", status);
         return status;
       }
     } else {

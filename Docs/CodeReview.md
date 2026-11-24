@@ -240,7 +240,7 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: a new `checkedVectorIndexingEnabled` constant reflects `CHECKED_VECTOR_INDEXING`. Both overloads are now `noexcept(!checkedVectorIndexingEnabled)` and choose `at()` or `operator[]` with `if constexpr` instead of preprocessor branches. A checked out-of-range index now throws a catchable `std::out_of_range`. Unchecked builds keep `noexcept` and the unchecked `operator[]`, so their code is unchanged. The `size_t` overloads were removed, because the `SizableType` overloads accept `size_t` and every other integer index. As with `DSPHEADERS_RENDER_LOGGING`, the flag must be set build-wide because the header is part of a Clang module, and the comment now says so. Nothing in this repository calls the function. `testCheckedVectorIndexing` checks the `noexcept` specification against the mode, indexing with several index types on `const` and mutable containers, and, in checked builds, that an out-of-range index throws `std::out_of_range`. The full test plan passes with 150 tests in the default configuration and with `OTHER_CFLAGS=-DCHECKED_VECTOR_INDEXING=1`. A temporary assertion confirmed that the checked run had the flag enabled.
 
-24. Documentation and diagnostics are inaccurate.
+24. ~~Documentation and diagnostics are inaccurate.~~ **Fixed 2026-11-24.**
 
     - `Transformer::boolIn` says "0.0 means false and anything else 1.0", but its threshold is 0.5.
     - The `LFO` class comment omits the square waveform. Its `sampleRate_` member is never read, and `setSampleRate` does not update it.
@@ -249,6 +249,31 @@ This pass revisits every library source after the fixes above and those in `Perf
     - The pull-input failure in `processAndRender` is logged with `os_log_info` rather than `os_log_error`.
 
     Locations: `Parameters/Transformer.hpp:42`, `LFO.hpp:17`, `Parameters/Base.hpp:163`, `EventProcessor.hpp:191`, `EventProcessor.hpp:213`
+
+    Resolution: each point is corrected.
+    - `boolIn` now documents its 0.5 threshold, and that NaN maps to true.
+    - The `LFO` comment lists the square waveform. Its unused `sampleRate_` member was removed; the constructor still passes the sample rate to `PhaseIncrement`, which owns it.
+    - The `Base` comments describe `rampDelta_` and `rampRemaining_` per render call.
+    - The too-many-frames log uses `%u` for its `UInt32` values.
+    - The pull-input failure is logged with `os_log_error`.
+
+    No behavior changed apart from those two log messages. The full test plan passes with 150 tests.
+
+## Validation
+
+All findings in this second review have been resolved, each in its own commit, along with one related defect found while fixing item 19 (negative integer arguments to `ConstMath::log`). Item 16 was resolved by documenting the existing smoothing rather than changing it. After the final fix (item 24), the full `DSPHeaders` test plan ran with all 150 tests passing. Item 23 was also tested with `CHECKED_VECTOR_INDEXING=1`.
+
+The "C++23 Style and Code Quality" and "Performance" sections above are suggestions and have not been acted on, except where a finding's fix covered one. For example, item 17 added `[[nodiscard]]` to the `Coefficients` builders, item 12 removed the throws that needed `<stdexcept>`, and item 21 removed the `vForce.h` import.
+
+Changes that affect code using the library:
+
+- Kernels now receive input aligned with their output when an event splits a render block (item 11), and null input pointers when a render has no upstream input (item 15).
+- `BusBufferFacet::assignBufferList` returns an `AUAudioUnitStatus` and no longer throws, and `processAndRender` returns buffer list errors to the host instead of terminating (item 12).
+- A bypassed effect with no upstream input emits silence (item 14).
+- Ignoring the result of a `Coefficients` builder now warns (item 17).
+- `DelayBuffer::read` clamps out-of-range delays (item 20), and an unconfigured `LowPassFilter` passes audio through (item 21).
+- `BusBufferFacet::pullInput` no longer performs a capacity check; the caller must ensure capacity, as `EventProcessor` does (item 22).
+- With `CHECKED_VECTOR_INDEXING=1`, `checkedVectorIndexing` throws `std::out_of_range` instead of terminating (item 23).
 
 ## C++23 Style and Code Quality
 

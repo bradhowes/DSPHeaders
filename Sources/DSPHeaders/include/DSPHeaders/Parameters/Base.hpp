@@ -160,12 +160,12 @@ private:
   /// The destination for the active ramp. This should only be manipulated by the rendering thread.
   AUValue rampTarget_;
 
-  /// The change to apply to the parameter at each frame while ramping. This should only be manipulated
+  /// The change to apply to the parameter at each render call while ramping. This should only be manipulated
   /// by the rendering thread or when there is no rendering being done.
   AUValue rampDelta_{0.0};
 
-  /// The number of frames left while ramping the parameter to a new value. This should only be manipulated by the
-  /// rendering thread or when there is no rendering being done.
+  /// The number of render calls left while ramping the parameter to a new value. This should only be manipulated by
+  /// the rendering thread or when there is no rendering being done.
   AUAudioFrameCount rampRemaining_{0};
 
   /// The value to apply in the next render pass.

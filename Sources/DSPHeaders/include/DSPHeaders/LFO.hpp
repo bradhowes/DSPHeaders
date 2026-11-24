@@ -20,6 +20,7 @@ namespace DSPHeaders {
  - sinusoid
  - triangle
  - sawtooth
+ - square
 
  The output is bipolar ([-1.0, 1.0]). Use DSP::bipolarToUnipolar to generate values in [0.0, 1.0].
 
@@ -40,7 +41,7 @@ public:
    @param waveform the waveform to emit
    */
   LFO(Parameters::Float& frequency, ValueType sampleRate, LFOWaveform waveform) noexcept
-  : sampleRate_{sampleRate}, waveform_{waveform}, phaseIncrement_ {frequency, sampleRate} {
+  : waveform_{waveform}, phaseIncrement_ {frequency, sampleRate} {
     assert(isValidWaveform(waveform));
     reset();
   }
@@ -184,7 +185,6 @@ private:
     return counter >= ValueType{0.5} ? ValueType{1.0} : ValueType{-1.0};
   }
 
-  ValueType sampleRate_;
   LFOWaveform waveform_;
   ValueType phase_ = {0.0};
   PhaseIncrement<ValueType> phaseIncrement_;
