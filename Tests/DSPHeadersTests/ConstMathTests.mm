@@ -105,6 +105,15 @@ using namespace DSPHeaders;
   XCTAssertEqualWithAccuracy(std::log10(9.876), ConstMath::log10(9.876), epsilon);
 }
 
+- (void)testLog10OfIntegers {
+  // Integer arguments are computed in double, including the division by ln(10).
+  static_assert(std::is_same_v<decltype(ConstMath::log10(100)), double>);
+  XCTAssertEqualWithAccuracy(2.0, ConstMath::log10(100), epsilon);
+  XCTAssertEqualWithAccuracy(3.0, ConstMath::log10(1000L), epsilon);
+  XCTAssertEqualWithAccuracy(std::log10(7.0), ConstMath::log10(7), epsilon);
+  XCTAssertEqualWithAccuracy(0.0, ConstMath::log10(1), epsilon);
+}
+
 - (void)testPow {
   XCTAssertEqualWithAccuracy(std::pow(2.3, 4.5), ConstMath::pow(2.3, 4.5), epsilon);
   XCTAssertEqualWithAccuracy(std::pow(ConstMath::Constants<double>::PI, ConstMath::Constants<double>::e),

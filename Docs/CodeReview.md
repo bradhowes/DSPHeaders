@@ -192,13 +192,17 @@ This pass revisits every library source after the fixes above and those in `Perf
 
 ### Low
 
-19. `ConstMath::log10` is wrong for integer arguments.
+19. ~~`ConstMath::log10` is wrong for integer arguments.~~ **Fixed 2026-11-24.**
 
     It divides by `Constants<ValueType>::ln10`, which for `int` is `2`, so `ConstMath::log10(100)` returns 2.30 instead of 2. `log` correctly promotes integers to `double`, but `log10` does not use the promoted type for the divisor.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/ConstMath.hpp:343`
 
     Recommendation: use `Constants<IntegralAsDouble<ValueType>>::ln10`.
+
+    Resolution: `log10` now divides by `Constants<IntegralAsDouble<ValueType>>::ln10`, so integer arguments are divided by the `double` value of ln(10). Floating-point arguments are unchanged, because `IntegralAsDouble` is then the argument type. `testLog10OfIntegers` checks `log10(100)`, `log10(1000L)`, `log10(7)`, and `log10(1)`, and asserts that the integer result type is `double`. Three of its assertions fail without the fix. The full test plan passes with 143 tests.
+
+    A related defect, not fixed here: `detail::log_integral_check` returns 0 for negative integers, so `ConstMath::log(-5)` and `log10(-5)` return 0, while `log(-5.0)` correctly returns NaN. Its `x > 1 ? … : 0` branch should handle only `x == 1`, and pass negative values to `log_check`.
 
 20. `DelayBuffer::read` has no defined behavior outside `[0, size() - 3]`.
 

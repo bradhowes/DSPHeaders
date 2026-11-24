@@ -340,7 +340,8 @@ constexpr IntegralAsDouble<ValueType> log(ValueType x) noexcept { return detail:
  */
 template<typename ValueType>
 constexpr IntegralAsDouble<ValueType> log10(ValueType x) noexcept {
-  return detail::log_integral_check(x) / Constants<ValueType>::ln10;
+  // Divide in the result type: `Constants<int>::ln10` would truncate to 2.
+  return detail::log_integral_check(x) / Constants<IntegralAsDouble<ValueType>>::ln10;
 }
 
 /**
