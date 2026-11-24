@@ -140,13 +140,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
 ### Medium
 
-14. Bypass without upstream input leaves the output buffer unwritten.
+14. ~~Bypass without upstream input leaves the output buffer unwritten.~~ **Fixed 2026-11-24.**
 
     In `makeFrames`, bypass with no linked input facet does nothing. The comment says "we have already zero'd out the output buffer", but nothing clears it, so an instrument in bypass emits whatever was in the host's buffer or in the internal `BusSampleBuffer` from earlier renders.
 
     Location: `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:393`
 
     Recommendation: call `outputFacet.busBuffers().clear(frameCount)` in that branch (the pointers are already offset), and fix the comment.
+
+    Resolution: when bypassed with no linked input, `makeFrames` now clears the current segment of the output with `outputFacet.busBuffers().clear(frameCount)`, and the comment now describes that. A bypassed instrument now emits silence instead of whatever the buffer held before. Bypass with upstream input is unchanged. `testBypassWithoutInputEmitsSilence` fills the output with a non-zero value and renders a bypassed block split by a mid-block event, so both segments must be cleared. It fails without the fix (one failure per channel). The full test plan passes with 137 tests. Until item 15 is fixed, an input facet left linked from an earlier render still takes the copy branch instead of this one.
 
 15. `inputFacet_` stays linked to buffers it no longer owns.
 

@@ -1,6 +1,7 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
 #import <XCTest/XCTest.h>
+#import <algorithm>
 #import <cmath>
 
 #import "DSPHeaders/DSP.hpp"
@@ -607,6 +608,37 @@ struct MockInputReadingEffect : public EventProcessor<MockInputReadingEffect>
 
 - (void)testInPlaceInputAlignedWithOutputAfterMidBlockEvent {
   [self renderWithMidBlockEvent:YES];
+}
+
+- (void)testBypassWithoutInputEmitsSilence {
+  self.effect->setBypass(true);
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+
+  // Stale samples from a previous render must not leak out while bypassed.
+  for (UInt32 channel = 0; channel < outputData->mNumberBuffers; ++channel) {
+    std::fill_n(static_cast<AUValue*>(outputData->mBuffers[channel].mData), frames, 7.0f);
+  }
+
+  // An event at frame 100 splits the block, so both segments must be cleared.
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = 100;
+  event.parameterAddress = 1;
+  event.value = 0.5;
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameter;
+
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, frames, 0, outputData, eventList, nullptr), 0);
+  XCTAssertTrue(self.effect->frameCounts_.empty());
+
+  for (UInt32 channel = 0; channel < outputData->mNumberBuffers; ++channel) {
+    auto ptr = static_cast<AUValue*>(outputData->mBuffers[channel].mData);
+    XCTAssertEqual(std::count(ptr, ptr + frames, 0.0f), frames);
+  }
 }
 
 - (void)testInvalidBufferListReturnsStatus {

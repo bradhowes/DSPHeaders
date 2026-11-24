@@ -403,9 +403,12 @@ private:
     if (inputFacet_.isLinked()) inputFacet_.setOffset(processed);
     if (isBypassed()) {
       // If we have input samples from an upstream node, either use the sample buffers directly or copy samples over
-      // to the output buffer. Otherwise, we have already zero'd out the output buffer, so we are done.
+      // to the output buffer. Otherwise there is nothing to pass through, so emit silence rather than leaving whatever
+      // the output buffer held before. The output pointers are already offset to `processed`.
       if (inputFacet_.isLinked()) {
         inputFacet_.copyInto(outputFacet, processed, frameCount);
+      } else {
+        outputFacet.busBuffers().clear(frameCount);
       }
     } else {
       if constexpr(HasDoRenderingWithOutputBus<KernelType>) {
