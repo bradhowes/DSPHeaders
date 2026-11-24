@@ -56,7 +56,7 @@ struct BusBufferFacet {
    @returns `noErr` on success, `kAudioUnitErr_FormatNotSupported` for a channel count mismatch, or `kAudio_ParamError`
    for a missing buffer list or missing storage
    */
-  [[nodiscard]] AUAudioUnitStatus assignBufferList(AudioBufferList* bufferList,
+  AUAudioUnitStatus assignBufferList(AudioBufferList* bufferList,
                                                    AudioBufferList* inPlaceSource = nullptr) noexcept {
     if (bufferList == nullptr) [[unlikely]] return kAudio_ParamError;
 
