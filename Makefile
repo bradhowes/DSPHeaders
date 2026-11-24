@@ -1,5 +1,5 @@
-PLATFORM_IOS = iOS Simulator,name=iPad mini (A17 Pro)
-IOS_SIM = 8C8C409E-EDE8-4AC3-969D-449731DC9DA1
+PLATFORM_IOS = iOS Simulator,name=iPad mini (A20 Pro)
+IOS_SIM = 4DF1AA75-A2F8-4E1A-AF15-154F8671CBBC
 PLATFORM_MACOS = macOS
 SCHEME = DSPHeaders
 XCCOV = xcrun xccov view --report --only-targets
