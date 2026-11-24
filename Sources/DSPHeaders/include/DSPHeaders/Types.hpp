@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <type_traits>
 
 #include "DSPHeaders/Concepts.hpp"
@@ -12,7 +13,7 @@ namespace DSPHeaders {
  Convert an enum value into its underlying integral type.
  */
 template <EnumeratedType T>
-constexpr auto valueOf(T index) noexcept { return static_cast<typename std::underlying_type<T>::type>(index); };
+constexpr auto valueOf(T index) noexcept { return static_cast<typename std::underlying_type<T>::type>(index); }
 
 /// Literal operator that generates `Float` values from the literal content.
 constexpr long double operator ""_F(long double value) { return value; }

@@ -40,7 +40,7 @@ public:
 
    @param sizeInSamples capacity of the buffer
    */
-  DelayBuffer(double sizeInSamples) noexcept :
+  explicit DelayBuffer(double sizeInSamples) noexcept :
   buffer_(smallestPowerOf2For(sizeInSamples), ValueType{0.0}), writePos_{0}, wrapMask_{buffer_.size() - 1} {}
 
   /**

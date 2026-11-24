@@ -24,7 +24,7 @@ struct TypeErasedKernel
                                                            AURenderPullInputBlock)>;
   TypeErasedKernel() : processAndRender_{} {}
 
-  TypeErasedKernel(ProcessAndRender par) : processAndRender_{par} {}
+  explicit TypeErasedKernel(ProcessAndRender par) : processAndRender_{par} {}
 
   std::function<AUAudioUnitStatus(const AudioTimeStamp*, UInt32, NSInteger, AudioBufferList*, const AURenderEvent*,
                                   AURenderPullInputBlock)> processAndRender_;
@@ -32,7 +32,7 @@ struct TypeErasedKernel
 
 struct RenderBlockShim
 {
-  RenderBlockShim(TypeErasedKernel kernel) : kernel_{kernel} {}
+  explicit RenderBlockShim(TypeErasedKernel kernel) : kernel_{kernel} {}
 
   AUInternalRenderBlock internalRenderBlock() {
     if (kernel_.processAndRender_) {
