@@ -8,14 +8,14 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Select Xcode
-      run: ls -l /Applications/Xcode* && sudo xcode-select -s /Applications/Xcode_26.2.app
-    - name: Required to prevent the next command from sometimes not working
-      run: xcrun simctl list > /dev/null
+      run: ls -l /Applications && sudo xcode-select -s /Applications/Xcode_27.2.app
+    - name: Show simctl devices
+      run: xcrun simctl list devices
     - name: Download iOS
       run: xcodebuild -downloadPlatform iOS
     - name: Build, test, and code coverage
