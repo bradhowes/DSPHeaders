@@ -118,13 +118,15 @@ This pass revisits every library source after the fixes above and those in `Perf
 
 ### High
 
-12. Errors on the render path call `std::terminate` instead of returning a status.
+12. ~~Errors on the render path call `std::terminate` instead of returning a status.~~ **Fixed 2026-11-24.**
 
     `processAndRender`, `render`, and `makeFrames` are `noexcept`, but they call `BusBufferFacet::assignBufferList`, `setOffset`, and `setFrameCount`, which throw `std::runtime_error` for a null list, a channel-count mismatch, or a partly populated buffer list. An exception leaving a `noexcept` function terminates the process, so a malformed buffer list from the host, or an interleaved format whose `mNumberBuffers` differs from `channelCount`, crashes the host app instead of failing the render. `deallocateRenderResources` is also `noexcept` and calls `BusSampleBuffer::release`, which throws if the buffer was already released, so calling it twice terminates.
 
     Locations: `Sources/DSPHeaders/include/DSPHeaders/BusBufferFacet.hpp:57`, `Sources/DSPHeaders/include/DSPHeaders/BusSampleBuffer.hpp:39`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:139`, `Sources/DSPHeaders/include/DSPHeaders/EventProcessor.hpp:196`
 
     Recommendation: have `assignBufferList` return a status (or `std::expected<void, OSStatus>`) and have `processAndRender` return `kAudioUnitErr_FormatNotSupported` or `kAudioUnitErr_InvalidParameter`. Make `release` a no-op when nothing is allocated. Keep `assert` for the internal invariants. Exceptions do not belong on the render thread in any case, since throwing allocates.
+
+    Resolution: nothing in the library throws any more. `BusBufferFacet::assignBufferList` is now `[[nodiscard]] noexcept` and returns an `AUAudioUnitStatus`: `noErr`; `kAudioUnitErr_FormatNotSupported` when the channel count of the list or in-place source does not match; or `kAudio_ParamError` for a null list, a partly populated list, or missing in-place storage. As before, it changes no state on failure. `processAndRender` checks the status for the output and input facets, logs it with `os_log_error`, and returns it to the host without rendering. On an unlinked facet, `setOffset`, `setFrameCount`, `copyInto`, `clear`, and `unlink` are now `noexcept` no-ops, and `pullInput` returns `kAudioUnitErr_Uninitialized`. `BusSampleBuffer::release` is `noexcept` and safe to call when nothing is allocated, so `deallocateRenderResources` can run twice. This is source-breaking for code that calls `assignBufferList` directly: it no longer throws, and ignoring its result now produces a warning. `BusBufferFacetTests` now checks the specific status codes in place of `XCTAssertThrows`. New tests cover the rest: `testNullBufferList` and `testUnlinkedFacetIsSafe` for the facet, `testReleaseWithoutAllocationIsSafe` for the sample buffer, and, for `EventProcessor`, `testInvalidBufferListReturnsStatus` (a mono list for a stereo effect, and a partly populated list) and `testDeallocateTwiceIsSafe`. The full test plan passes with 134 tests.
 
 13. A default-constructed `Biquad::Filter` filters from indeterminate state.
 

@@ -193,7 +193,11 @@ public:
     }
 
     // Setup the rendering destination to properly use the internal buffer or the buffer attached to `output`.
-    outputFacets_[outputBusIndex].assignBufferList(output, outputBus.mutableAudioBufferList());
+    if (auto status = outputFacets_[outputBusIndex].assignBufferList(output, outputBus.mutableAudioBufferList());
+        status != noErr) [[unlikely]] {
+      os_log_error(log_, "processAndRender END - invalid output buffer list: %d", status);
+      return status;
+    }
     outputFacets_[outputBusIndex].setFrameCount(frameCount);
 
     if (pullInputBlock != nullptr) {
@@ -205,7 +209,12 @@ public:
       //
       // Both facets now refer to `output`, whose frame count was just set above, and `pullInput` sets it again before
       // pulling, so there is no need to set it here as well.
-      inputFacet_.assignBufferList(output, outputBus.mutableAudioBufferList());
+      // This cannot fail once the output facet has accepted the same buffer list, but check anyway.
+      if (auto status = inputFacet_.assignBufferList(output, outputBus.mutableAudioBufferList()); status != noErr)
+        [[unlikely]] {
+        os_log_error(log_, "processAndRender END - invalid input buffer list: %d", status);
+        return status;
+      }
 
       AudioUnitRenderActionFlags actionFlags = 0;
       auto status = inputFacet_.pullInput(&actionFlags, timestamp, frameCount, outputBusNumber, pullInputBlock);

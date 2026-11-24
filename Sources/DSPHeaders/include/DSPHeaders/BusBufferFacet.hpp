@@ -46,43 +46,35 @@ struct BusBufferFacet {
    - bufferList has non-nullptr mData values -- use it as-is
    - bufferList has nullptr mData values && inPlaceSource != nullptr -- use the inPlaceSource mData elements
 
-   Note that this method will throw an exception if the channel count of either `bufferList` or `inPlaceSource` does not
-   match the expected channel count, if `bufferList` has a mix of nullptr and non-nullptr mData values, or if a buffer
-   that would be used for storage has a nullptr mData value. All validation takes place before any state is changed, so
-   on failure the facet and `bufferList` are left as they were.
+   The method fails if the channel count of either `bufferList` or `inPlaceSource` does not match the expected channel
+   count, if `bufferList` has a mix of nullptr and non-nullptr mData values, or if a buffer that would be used for
+   storage has a nullptr mData value. It reports failure by status rather than by exception because it runs on the
+   render thread. All validation takes place before any state is changed, so on failure the facet and `bufferList` are
+   left as they were.
 
    @param bufferList the collection of buffers to use
    @param inPlaceSource if not nullptr, use their mData elements for storage
+   @returns `noErr` on success, `kAudioUnitErr_FormatNotSupported` for a channel count mismatch, or `kAudio_ParamError`
+   for a missing buffer list or missing storage
    */
-  void assignBufferList(AudioBufferList* bufferList, AudioBufferList* inPlaceSource = nullptr) {
-    if (bufferList == nullptr) [[unlikely]] {
-      throw std::runtime_error("bufferList == nullptr");
-    }
+  [[nodiscard]] AUAudioUnitStatus assignBufferList(AudioBufferList* bufferList,
+                                                   AudioBufferList* inPlaceSource = nullptr) noexcept {
+    if (bufferList == nullptr) [[unlikely]] return kAudio_ParamError;
 
     size_t numBuffers = bufferList->mNumberBuffers;
-    if (numBuffers != pointers_.size()) [[unlikely]] {
-      throw std::runtime_error("numBuffers != pointers_.size()");
-    }
+    if (numBuffers != pointers_.size()) [[unlikely]] return kAudioUnitErr_FormatNotSupported;
 
     bool inPlace = numBuffers > 0 && bufferList->mBuffers[0].mData == nullptr;
     if (inPlace) {
       // The given bufferList does not have space to use -- attempt to perform in-place rendering.
-      if (inPlaceSource == nullptr) [[unlikely]] {
-        throw std::runtime_error("inPlaceSource == nullptr");
-      }
-      if (inPlaceSource->mNumberBuffers != numBuffers) [[unlikely]] {
-        throw std::runtime_error("inPlaceSource->mNumberBuffers != numBuffers");
-      }
-      if (!allBuffersMatch(inPlaceSource, true)) [[unlikely]] {
-        throw std::runtime_error("inPlaceSource has nullptr mData");
-      }
+      if (inPlaceSource == nullptr) [[unlikely]] return kAudio_ParamError;
+      if (inPlaceSource->mNumberBuffers != numBuffers) [[unlikely]] return kAudioUnitErr_FormatNotSupported;
+      if (!allBuffersMatch(inPlaceSource, true)) [[unlikely]] return kAudio_ParamError;
     }
 
     // Every buffer in `bufferList` must agree with the first one: all nullptr for in-place rendering, otherwise all
     // non-nullptr.
-    if (!allBuffersMatch(bufferList, !inPlace)) [[unlikely]] {
-      throw std::runtime_error("bufferList is partially populated");
-    }
+    if (!allBuffersMatch(bufferList, !inPlace)) [[unlikely]] return kAudio_ParamError;
 
     if (inPlace) {
       for (UInt32 channel = 0; channel < numBuffers; ++channel) {
@@ -92,16 +84,17 @@ struct BusBufferFacet {
 
     bufferList_ = bufferList;
     setOffset(0);
+    return noErr;
   }
 
   /**
    Set the facet to start at the given offset into the source buffers. Once done, the std::vector AUValue
-   pointers will start `offset` samples into the underlying buffer.
+   pointers will start `offset` samples into the underlying buffer. Does nothing if the facet is not linked.
 
    @param offset number of samples to offset.
    */
-  void setOffset(AUAudioFrameCount offset) {
-    validateBufferList();
+  void setOffset(AUAudioFrameCount offset) noexcept {
+    if (!isLinked()) [[unlikely]] return;
     for (size_t channel = 0; channel < pointers_.size(); ++channel) {
       pointers_[channel] = getBufferPointer(channel, offset);
     }
@@ -109,12 +102,12 @@ struct BusBufferFacet {
 
   /**
    Set the number of frames (samples) that are in each buffer. This must be done before the underlying buffers are
-   returned to Apple's audio engine that is driving the rendering.
+   returned to Apple's audio engine that is driving the rendering. Does nothing if the facet is not linked.
 
    @param frameCount number of samples in a buffer.
    */
-  void setFrameCount(AUAudioFrameCount frameCount) {
-    validateBufferList();
+  void setFrameCount(AUAudioFrameCount frameCount) noexcept {
+    if (!isLinked()) [[unlikely]] return;
     UInt32 byteSize = frameCount * sizeof(AUValue);
     for (UInt32 channel = 0; channel < bufferList_->mNumberBuffers; ++channel) {
       bufferList_->mBuffers[channel].mDataByteSize = byteSize;
@@ -125,10 +118,9 @@ struct BusBufferFacet {
   bool isLinked() const noexcept { return bufferList_ != nullptr; }
 
   /**
-   Release the underlying buffers.
+   Release the underlying buffers. Safe to call when the facet is not linked.
    */
-  void unlink() {
-    validateBufferList();
+  void unlink() noexcept {
     bufferList_ = nullptr;
     for (size_t channel = 0; channel < pointers_.size(); ++channel) {
       pointers_[channel] = nullptr;
@@ -143,6 +135,8 @@ struct BusBufferFacet {
    @param frameCount the number of frames to process
    @param inputBusNumber the bus to pull from
    @param pullInputBlock the function to call to do the pulling
+   @returns status from `pullInputBlock`, or an error if there is no block, the facet is not linked, or the buffers
+   are too small
    */
   AUAudioUnitStatus pullInput(AudioUnitRenderActionFlags* actionFlags, AudioTimeStamp const* timestamp,
                               AUAudioFrameCount frameCount, NSInteger inputBusNumber,
@@ -151,7 +145,7 @@ struct BusBufferFacet {
       return kAudioUnitErr_NoConnection;
     }
 
-    validateBufferList();
+    if (!isLinked()) [[unlikely]] return kAudioUnitErr_Uninitialized;
     if (frameCount * sizeof(AUValue) > bufferList_->mBuffers[0].mDataByteSize) [[unlikely]] {
       return kAudioUnitErr_TooManyFramesToProcess;
     }
@@ -162,14 +156,14 @@ struct BusBufferFacet {
 
   /**
    Copy contents of the buffers into the given destination, starting at the offset and copying frameCount bytes.
-   Currently this is only used when an audio unit is in bypass mode.
+   Currently this is only used when an audio unit is in bypass mode. Does nothing unless both facets are linked.
 
    @param destination the buffer to copy into
    @param offset the offset to apply before writing
    @param frameCount the number of samples to write
    */
-  void copyInto(BusBufferFacet& destination, AUAudioFrameCount offset, AUAudioFrameCount frameCount) const {
-    validateBufferList();
+  void copyInto(BusBufferFacet& destination, AUAudioFrameCount offset, AUAudioFrameCount frameCount) const noexcept {
+    if (!isLinked() || !destination.isLinked()) [[unlikely]] return;
     auto outputs = destination.bufferList_;
     for (UInt32 channel = 0; channel < bufferList_->mNumberBuffers; ++channel) {
       if (bufferList_->mBuffers[channel].mData == outputs->mBuffers[channel].mData) {
@@ -188,6 +182,7 @@ struct BusBufferFacet {
    @param frameCount the number of frames to clear
    */
   void clear(AUAudioFrameCount frameCount) noexcept {
+    if (!isLinked()) [[unlikely]] return;
     constexpr auto stride = vDSP_Stride(1);
     auto length = vDSP_Length(frameCount);
     for (UInt32 channel = 0; channel < bufferList_->mNumberBuffers; ++channel) {
@@ -222,12 +217,6 @@ private:
       }
     }
     return true;
-  }
-
-  void validateBufferList() const {
-    if (bufferList_ == nullptr) [[unlikely]] {
-      throw std::runtime_error("bufferList_ == nullptr");
-    }
   }
 
   AudioBufferList* bufferList_{nullptr};

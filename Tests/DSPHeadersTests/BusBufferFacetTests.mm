@@ -54,7 +54,7 @@ private:
   buffer.allocate(monoFormat, maxFrames);
   BusBufferFacet facet;
   facet.setChannelCount(1);
-  facet.assignBufferList(buffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(buffer.mutableAudioBufferList()));
   XCTAssertEqual(1, facet.channelCount());
   BusBuffers bb{facet.busBuffers()};
   XCTAssertTrue(bb.isMono());
@@ -65,7 +65,7 @@ private:
   buffer.allocate(stereoFormat, maxFrames);
   BusBufferFacet facet;
   facet.setChannelCount(2);
-  facet.assignBufferList(buffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(buffer.mutableAudioBufferList()));
   XCTAssertEqual(2, facet.channelCount());
   BusBuffers bb{facet.busBuffers()};
   XCTAssertTrue(bb.isStereo());
@@ -79,13 +79,13 @@ private:
 
   BusBufferFacet facet;
   facet.setChannelCount(1);
-  XCTAssertNoThrow(facet.assignBufferList(monoBuffer.mutableAudioBufferList()));
+  XCTAssertEqual(noErr, facet.assignBufferList(monoBuffer.mutableAudioBufferList()));
 
   facet.setChannelCount(2);
-  XCTAssertNoThrow(facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
+  XCTAssertEqual(noErr, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
 
   facet.setChannelCount(1);
-  XCTAssertThrows(facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
+  XCTAssertEqual(kAudioUnitErr_FormatNotSupported, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
 }
 
 - (void)testInPlaceRendering {
@@ -97,7 +97,7 @@ private:
 
   BusBufferFacet facet;
   facet.setChannelCount(2);
-  XCTAssertNoThrow(facet.assignBufferList(output.list(), source.list()));
+  XCTAssertEqual(noErr, facet.assignBufferList(output.list(), source.list()));
   XCTAssertEqual(left.data(), output.list()->mBuffers[0].mData);
   XCTAssertEqual(right.data(), output.list()->mBuffers[1].mData);
   BusBuffers bb{facet.busBuffers()};
@@ -112,7 +112,7 @@ private:
   // Only the first channel has storage
   TestBufferList firstOnly{2};
   firstOnly.setData(0, left.data());
-  XCTAssertThrows(facet.assignBufferList(firstOnly.list()));
+  XCTAssertEqual(kAudio_ParamError, facet.assignBufferList(firstOnly.list()));
   XCTAssertFalse(facet.isLinked());
 
   // Only the second channel has storage, so in-place rendering would overwrite it
@@ -121,7 +121,7 @@ private:
   TestBufferList source{2};
   source.setData(0, left.data());
   source.setData(1, right.data());
-  XCTAssertThrows(facet.assignBufferList(secondOnly.list(), source.list()));
+  XCTAssertEqual(kAudio_ParamError, facet.assignBufferList(secondOnly.list(), source.list()));
   XCTAssertFalse(facet.isLinked());
   XCTAssertEqual(nullptr, secondOnly.list()->mBuffers[0].mData);
 }
@@ -132,17 +132,17 @@ private:
   facet.setChannelCount(2);
   TestBufferList output{2};
 
-  XCTAssertThrows(facet.assignBufferList(output.list()));
+  XCTAssertEqual(kAudio_ParamError, facet.assignBufferList(output.list()));
 
   // Source has fewer buffers than the output
   TestBufferList monoSource{1};
   monoSource.setData(0, left.data());
-  XCTAssertThrows(facet.assignBufferList(output.list(), monoSource.list()));
+  XCTAssertEqual(kAudioUnitErr_FormatNotSupported, facet.assignBufferList(output.list(), monoSource.list()));
 
   // Source is missing storage for a channel
   TestBufferList partialSource{2};
   partialSource.setData(0, left.data());
-  XCTAssertThrows(facet.assignBufferList(output.list(), partialSource.list()));
+  XCTAssertEqual(kAudio_ParamError, facet.assignBufferList(output.list(), partialSource.list()));
 
   XCTAssertFalse(facet.isLinked());
   XCTAssertEqual(nullptr, output.list()->mBuffers[0].mData);
@@ -157,12 +157,12 @@ private:
 
   BusBufferFacet facet;
   facet.setChannelCount(1);
-  facet.assignBufferList(monoBuffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(monoBuffer.mutableAudioBufferList()));
   facet.setFrameCount(10);
   XCTAssertEqual(10 * sizeof(float), monoBuffer.mutableAudioBufferList()->mBuffers[0].mDataByteSize);
 
   facet.setChannelCount(2);
-  facet.assignBufferList(stereoBuffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
   facet.setFrameCount(13);
   XCTAssertEqual(13 * sizeof(float), stereoBuffer.mutableAudioBufferList()->mBuffers[0].mDataByteSize);
   XCTAssertEqual(13 * sizeof(float), stereoBuffer.mutableAudioBufferList()->mBuffers[1].mDataByteSize);
@@ -174,7 +174,7 @@ private:
 
   BusBufferFacet facet;
   facet.setChannelCount(2);
-  facet.assignBufferList(stereoBuffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
   BusBuffers bb1{facet.busBuffers()};
   XCTAssertTrue(bb1.isValid());
   XCTAssertTrue(bb1.isStereo());
@@ -207,7 +207,7 @@ private:
 
   BusBufferFacet facet;
   facet.setChannelCount(2);
-  facet.assignBufferList(stereoBuffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
   BusBuffers bb1{facet.busBuffers()};
   XCTAssertTrue(bb1.isValid());
   XCTAssertTrue(bb1.isStereo());
@@ -241,7 +241,7 @@ private:
   stereoBuffer.allocate(stereoFormat, maxFrames);
   BusBufferFacet facet;
   facet.setChannelCount(2);
-  facet.assignBufferList(stereoBuffer.mutableAudioBufferList());
+  XCTAssertEqual(noErr, facet.assignBufferList(stereoBuffer.mutableAudioBufferList()));
 
   BusBuffers a{facet.busBuffers()};
   XCTAssertEqual(a.size(), 2);
@@ -253,6 +253,37 @@ private:
   XCTAssertEqual(a.size(), d.size());
   BusBuffers e = d;
   XCTAssertEqual(a.size(), e.size());
+}
+
+- (void)testNullBufferList {
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  XCTAssertEqual(kAudio_ParamError, facet.assignBufferList(nullptr));
+  XCTAssertFalse(facet.isLinked());
+}
+
+- (void)testUnlinkedFacetIsSafe {
+  // None of these may throw or dereference a missing buffer list, since they can run on the render thread.
+  BusBufferFacet facet;
+  facet.setChannelCount(2);
+  BusBufferFacet other;
+  other.setChannelCount(2);
+
+  facet.setOffset(1);
+  facet.setFrameCount(10);
+  facet.clear(10);
+  facet.copyInto(other, 0, 10);
+  facet.unlink();
+  XCTAssertFalse(facet.isLinked());
+  XCTAssertEqual(nullptr, facet.busBuffers()[0]);
+
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  AudioUnitRenderActionFlags flags = 0;
+  AURenderPullInputBlock pull = ^AUAudioUnitStatus(AudioUnitRenderActionFlags*, const AudioTimeStamp*,
+                                                   AUAudioFrameCount, NSInteger, AudioBufferList*) {
+    return noErr;
+  };
+  XCTAssertEqual(kAudioUnitErr_Uninitialized, facet.pullInput(&flags, &timestamp, 10, 0, pull));
 }
 
 @end

@@ -609,4 +609,31 @@ struct MockInputReadingEffect : public EventProcessor<MockInputReadingEffect>
   [self renderWithMidBlockEvent:YES];
 }
 
+- (void)testInvalidBufferListReturnsStatus {
+  AudioTimeStamp timestamp = AudioTimeStamp();
+
+  // The effect is configured for stereo, so a mono buffer list is rejected instead of terminating the process.
+  AVAudioFormat* mono = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:1];
+  AVAudioPCMBuffer* monoBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:mono frameCapacity:512];
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, 512, 0, [monoBuffer mutableAudioBufferList], nullptr,
+                                               mockPullInput),
+                 kAudioUnitErr_FormatNotSupported);
+
+  // A stereo list with storage for only one channel is rejected as well.
+  AVAudioFormat* stereo = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AVAudioPCMBuffer* stereoBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:stereo frameCapacity:512];
+  AudioBufferList* partial = [stereoBuffer mutableAudioBufferList];
+  partial->mBuffers[1].mData = nil;
+  XCTAssertEqual(self.effect->processAndRender(&timestamp, 512, 0, partial, nullptr, mockPullInput),
+                 kAudio_ParamError);
+
+  XCTAssertTrue(self.effect->frameCounts_.empty());
+}
+
+- (void)testDeallocateTwiceIsSafe {
+  self.effect->deallocateRenderResources();
+  self.effect->deallocateRenderResources();
+  XCTAssertFalse(self.effect->isRendering());
+}
+
 @end

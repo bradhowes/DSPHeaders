@@ -40,4 +40,15 @@ static AUAudioFrameCount maxFrames = 100;
   XCTAssertEqual(buffer.mutableAudioBufferList(), nullptr);
 }
 
+- (void)testReleaseWithoutAllocationIsSafe {
+  BusSampleBuffer buffer;
+  buffer.release();
+  XCTAssertEqual(buffer.mutableAudioBufferList(), nullptr);
+
+  buffer.allocate(format, maxFrames);
+  buffer.release();
+  buffer.release();
+  XCTAssertEqual(buffer.channelCount(), 0);
+}
+
 @end

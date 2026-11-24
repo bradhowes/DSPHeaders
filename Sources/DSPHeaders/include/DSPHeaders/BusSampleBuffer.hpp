@@ -34,13 +34,9 @@ struct BusSampleBuffer {
   }
 
   /**
-   Forget any allocated buffer.
+   Forget any allocated buffer. Safe to call when nothing is allocated.
    */
-  void release() {
-    if (buffer_ == nullptr) [[unlikely]] {
-      throw std::runtime_error("buffer_ == nullptr");
-    }
-
+  void release() noexcept {
     buffer_ = nullptr;
     mutableAudioBufferList_ = nullptr;
   }
