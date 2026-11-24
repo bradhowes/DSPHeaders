@@ -175,7 +175,7 @@ public:
    @param address the address of the parameter
    @returns the value for the parameter
    */
-  inline AUValue getParameterValue(AUParameterAddress address) noexcept {
+  inline AUValue getParameterValue(AUParameterAddress address) const noexcept {
     return isRendering() ? getPendingParameterValue(address) : getImmediateParameterValue(address);
   }
 
@@ -493,7 +493,7 @@ private:
         default:
           break;
       }
-      event = const_cast<AURenderEvent*>(event->head.next);
+      event = event->head.next;
     }
 
     return event;

@@ -5,7 +5,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "DSP.hpp"
+#include "DSPHeaders/DSP.hpp"
 #include "DSPHeaders/Parameters/Float.hpp"
 
 namespace DSPHeaders {

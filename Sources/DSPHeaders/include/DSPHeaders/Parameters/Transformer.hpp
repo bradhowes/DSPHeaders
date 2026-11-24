@@ -3,7 +3,6 @@
 #pragma once
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 
 #include <AudioToolbox/AUParameters.h>
@@ -39,8 +38,7 @@ struct Transformer {
   static AUValue percentageOut(AUValue value) noexcept { return value * 100.0f; }
 
   /**
-   A transformer of floating-point values into a boolean, where values below 0.5 mean false (0.0) and anything else,
-   including NaN, means true (1.0).
+   A transformer of floating-point values into a boolean, where values below 0.5 mean false (0.0) and anything else, including NaN, means true (1.0).
 
    @param value the value to transform
    @returns transformed value

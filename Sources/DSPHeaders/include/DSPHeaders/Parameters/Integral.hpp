@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include <cmath>
-#include <AVFoundation/AVFoundation.h>
-
 #include "DSPHeaders/Parameters/Base.hpp"
 
 namespace DSPHeaders::Parameters {

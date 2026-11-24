@@ -6,13 +6,13 @@
 #include <cmath>
 #include <numbers>
 
-#include "DSP.hpp"
+#include "DSPHeaders/DSP.hpp"
 #include "DSPHeaders/Parameters/Float.hpp"
 #include "DSPHeaders/PhaseIncrement.hpp"
 
-enum class LFOWaveform { sinusoid, triangle, sawtooth, square};
-
 namespace DSPHeaders {
+
+enum class LFOWaveform { sinusoid, triangle, sawtooth, square};
 
 /**
  Implementation of a low-frequency oscillator. Can generate:
@@ -33,6 +33,7 @@ namespace DSPHeaders {
 template <typename ValueType = AUValue>
 class LFO {
 public:
+
   /**
    Create a new instance.
 

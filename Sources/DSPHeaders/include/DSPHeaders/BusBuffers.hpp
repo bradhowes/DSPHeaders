@@ -67,7 +67,7 @@ public:
   void clear(AUAudioFrameCount frameCount) noexcept {
     constexpr auto stride = vDSP_Stride(1);
     auto length = vDSP_Length(frameCount);
-    for (UInt32 channel = 0; channel < buffers_.size(); ++channel) {
+    for (size_t channel = 0; channel < buffers_.size(); ++channel) {
       auto ptr = buffers_[channel];
       if (ptr != nullptr) {
         using elemType = std::remove_pointer_t<decltype(ptr)>;

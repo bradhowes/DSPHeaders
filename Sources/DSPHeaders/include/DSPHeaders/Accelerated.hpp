@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <Accelerate/Accelerate.h>
 
+#include "DSPHeaders/Concepts.hpp"
+
 namespace DSPHeaders {
 
 /**
@@ -13,7 +15,7 @@ namespace DSPHeaders {
  These are written so that the right routine is chosen depending on the definition of a template argument `T`.
  The pointers are `constexpr`, so calls through them compile to direct calls to the vDSP routines.
  */
-template <std::floating_point T>
+template <Acceleratable T>
 struct Accelerated
 {
   /**

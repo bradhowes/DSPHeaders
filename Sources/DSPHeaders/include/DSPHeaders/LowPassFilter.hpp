@@ -56,7 +56,7 @@ public:
    @param outs the storage for the filtered results
    @param frameCount the number of samples to process in the sequences
    */
-  void apply(BusBuffers& ins, BusBuffers& outs, size_t frameCount) const
+  void apply(const BusBuffers& ins, BusBuffers& outs, size_t frameCount) const
   {
     if (setup_ == nullptr || lastNumChannels_ != ins.size() || lastNumChannels_ != outs.size()) [[unlikely]] {
       passThrough(ins, outs, frameCount);
@@ -68,8 +68,9 @@ public:
   }
 
 private:
+
   /// Copy each input channel to the matching output channel, skipping missing and shared (in-place) buffers.
-  static void passThrough(BusBuffers& ins, BusBuffers& outs, size_t frameCount) noexcept {
+  static void passThrough(const BusBuffers& ins, BusBuffers& outs, size_t frameCount) noexcept {
     for (size_t channel = 0; channel < std::min(ins.size(), outs.size()); ++channel) {
       const AUValue* in = ins[channel];
       AUValue* out = outs[channel];

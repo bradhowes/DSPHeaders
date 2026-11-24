@@ -6,8 +6,8 @@
 #include <array>
 #include <cassert>
 
-#include "Biquad.hpp"
-#include "DSP.hpp"
+#include "DSPHeaders/Biquad.hpp"
+#include "DSPHeaders/DSP.hpp"
 
 namespace DSPHeaders {
 
@@ -35,7 +35,7 @@ public:
   using FrequencyBands = std::array<Band, BandCount>;
 
   /// Collection of frequency bands based on Pirkle's ideal.
-  inline static FrequencyBands ideal {
+  inline static constexpr FrequencyBands ideal {
     16.0, 1600.0,
     33.0, 3300.0,
     48.0, 4800.0,
@@ -45,7 +45,7 @@ public:
   };
 
   /// Collection of frequency bands based on National Semiconductor paper and Pirkle's interpretation.
-  inline static FrequencyBands nationalSemiconductor {
+  inline static constexpr FrequencyBands nationalSemiconductor {
     32.0, 1500.0,
     68.0, 3400.0,
     96.0, 4800.0,
@@ -74,7 +74,7 @@ public:
 
    @param intensity new value to use
    */
-  void setIntensity(double intensity) noexcept {
+  void setIntensity(ValueType intensity) noexcept {
     intensity_ = intensity;
     updateOutputScale();
   }
@@ -109,7 +109,7 @@ public:
     // Calculate weighted state sum of past values to mix with input. The gamma values only change with the filter
     // coefficients, so they are calculated in `updateCoefficients`.
     ValueType weightedSum = 0.0;
-    for (auto index = 0; index < filters_.size(); ++index) {
+    for (size_t index = 0; index < filters_.size(); ++index) {
       weightedSum += gammas_[filters_.size() - index - 1] * filters_[index].storageComponent();
     }
 
@@ -126,7 +126,7 @@ private:
   using AllPassFilter = Biquad::CanonicalTranspose<ValueType>;
 
   void updateCoefficients(ValueType modulation) noexcept {
-    for (auto index = 0; index < BandCount; ++index) {
+    for (size_t index = 0; index < BandCount; ++index) {
       auto const& band = bands_[index];
       ValueType frequency = DSP::bipolarModulation(modulation, band.frequencyMin, band.frequencyMax);
       filters_[index].setCoefficients(Biquad::Coefficients<ValueType>::APF1(sampleRate_, frequency));

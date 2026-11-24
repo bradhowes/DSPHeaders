@@ -121,11 +121,7 @@ public:
  @param value the value to convert
  @returns 1.0 for `true` and 0.0 for `false`
  */
-template <typename T>
-AUValue fromBool(T value) {
-  static_assert(std::is_same_v<T, bool>);
-  return value ? 1.0 : 0.0;
-}
+inline AUValue fromBool(bool value) { return value ? 1.0 : 0.0; }
 
 /**
  Convert an AUValue (float) into a boolean value
@@ -133,10 +129,6 @@ AUValue fromBool(T value) {
  @param value the value to convert
  @returns 1.0 for `true` and 0.0 for `false`
  */
-template <typename T>
-bool toBool(T value) {
-  static_assert(std::is_same_v<T, AUValue>);
-  return value >= 0.5;
-}
+inline bool toBool(AUValue value) { return value >= 0.5; }
 
 }

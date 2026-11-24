@@ -7,10 +7,12 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 
-#include "DSPHeaders/BusBuffers.hpp"
-#include "DSPHeaders/BusBufferFacet.hpp"
-
 namespace DSPHeaders {
+
+class BusBuffers;
+
+template <typename T>
+concept Acceleratable = requires { std::same_as<T, float> || std::same_as<T, double>; };
 
 /// Concept that limits a type to a numeric type. NOTE: this might need to be refined.
 template <typename T>
