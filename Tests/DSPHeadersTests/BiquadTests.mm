@@ -2,7 +2,9 @@
 
 #import <XCTest/XCTest.h>
 #import <cmath>
+#import <cstring>
 #import <limits>
+#import <new>
 
 #import "Pirkle/fxobjects.h"
 #import "DSPHeaders/Biquad.hpp"
@@ -325,6 +327,52 @@ using namespace DSPHeaders;
   filter.setCoefficients(Biquad::Coefficients<>::LPF2(sampleRate, 3000.0, 0.707), 4);
   for (int sample = 0; sample < 4; ++sample) filter.transform(0.5);
   XCTAssertEqualWithAccuracy(filter.gainValue(), Biquad::Coefficients<>::LPF2(sampleRate, 3000.0, 0.707).a0, 1.0e-12);
+}
+
+/**
+ Default-initialize a `T` (as for a class member not named in a constructor's initializer list) in storage filled with
+ 0xFF bytes, which are NaN for floating-point values. Members without initializers keep those bytes, so any of them
+ that the type leaves indeterminate shows up as NaN.
+ */
+template <typename T, typename Check>
+static void withDefaultInitialized(Check check) {
+  alignas(T) unsigned char storage[sizeof(T)];
+  std::memset(storage, 0xFF, sizeof(storage));
+  T* value = new (storage) T;
+  check(*value);
+  value->~T();
+}
+
+- (void)testDefaultInitializedValuesAreZero {
+  withDefaultInitialized<Biquad::State<float>>([](const auto& state) {
+    XCTAssertEqual(state.x_z1, 0.0f);
+    XCTAssertEqual(state.x_z2, 0.0f);
+    XCTAssertEqual(state.y_z1, 0.0f);
+    XCTAssertEqual(state.y_z2, 0.0f);
+  });
+
+  withDefaultInitialized<Biquad::Coefficients<double>>([](const auto& coefficients) {
+    XCTAssertEqual(coefficients.a0, 0.0);
+    XCTAssertEqual(coefficients.a1, 0.0);
+    XCTAssertEqual(coefficients.a2, 0.0);
+    XCTAssertEqual(coefficients.b1, 0.0);
+    XCTAssertEqual(coefficients.b2, 0.0);
+  });
+}
+
+- (void)testDefaultInitializedFilterStartsFromZeroState {
+  // A filter with zero coefficients and zero state produces zero output; indeterminate state would produce NaN.
+  withDefaultInitialized<Biquad::Direct<float>>([](auto& filter) {
+    XCTAssertEqual(filter.storageComponent(), 0.0f);
+    XCTAssertEqual(filter.transform(1.0f), 0.0f);
+  });
+
+  // Once given coefficients, the first output must depend only on the input.
+  withDefaultInitialized<Biquad::CanonicalTranspose<double>>([](auto& filter) {
+    filter.setCoefficients(Biquad::Coefficients<double>::LPF2(44100.0, 3000.0, 0.707));
+    auto expected = Biquad::Coefficients<double>::LPF2(44100.0, 3000.0, 0.707).a0 * 0.5;
+    XCTAssertEqualWithAccuracy(filter.transform(0.5), expected, 1.0e-12);
+  });
 }
 
 @end

@@ -219,22 +219,24 @@ struct Coefficients {
     b2 += change.b2;
   }
 
-  ValueType a0; /// A0 coefficient in numerator
-  ValueType a1; /// A1 coefficient in numerator
-  ValueType a2; /// A2 coefficient in numerator
-  ValueType b1; /// B1 coefficient in denominator
-  ValueType b2; /// B2 coefficient in denominator
+  // Coefficients and state start at zero so that default-initialized instances, such as kernel members not named in a
+  // constructor's initializer list, never hold indeterminate values.
+  ValueType a0{}; /// A0 coefficient in numerator
+  ValueType a1{}; /// A1 coefficient in numerator
+  ValueType a2{}; /// A2 coefficient in numerator
+  ValueType b1{}; /// B1 coefficient in denominator
+  ValueType b2{}; /// B2 coefficient in denominator
 };
 
 /**
- Mutable filter state.
+ Mutable filter state. All values start at zero.
  */
 template <typename ValueType = AUValue>
 struct State {
-  ValueType x_z1;
-  ValueType x_z2;
-  ValueType y_z1;
-  ValueType y_z2;
+  ValueType x_z1{};
+  ValueType x_z2{};
+  ValueType y_z1{};
+  ValueType y_z2{};
 };
 
 /// Namespace for the various transforms that can be used to calculate values from a biquad graph. The differences and
@@ -535,8 +537,8 @@ private:
     CoefficientsType goal_{};
   };
 
-  StateType state_;
-  Ramper ramper_;
+  StateType state_{};
+  Ramper ramper_{};
 };
 
 template <typename ValueType = AUValue>
