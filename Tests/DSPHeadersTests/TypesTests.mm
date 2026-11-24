@@ -1,6 +1,8 @@
 // Copyright © 2021-2024 Brad Howes. All rights reserved.
 
+#import <stdexcept>
 #import <type_traits>
+#import <vector>
 
 #import <XCTest/XCTest.h>
 #import "DSPHeaders/Accelerated.hpp"
@@ -39,6 +41,33 @@ using namespace DSPHeaders;
 
   float tmp4 = 0.1234_F;
   double tmp5 = 0.1234_F;
+}
+
+- (void)testCheckedVectorIndexing {
+  std::vector<int> values{10, 20, 30};
+  const auto& constValues = values;
+
+  // `noexcept` only when indices are not checked, so a checked out-of-range index throws instead of terminating.
+  static_assert(noexcept(DSPHeaders::checkedVectorIndexing(values, 0)) ==
+                !DSPHeaders::checkedVectorIndexingEnabled);
+  static_assert(noexcept(DSPHeaders::checkedVectorIndexing(constValues, size_t(0))) ==
+                !DSPHeaders::checkedVectorIndexingEnabled);
+
+  // Any index type convertible to `size_t` works, for both const and mutable containers.
+  XCTAssertEqual(DSPHeaders::checkedVectorIndexing(constValues, size_t(1)), 20);
+  XCTAssertEqual(DSPHeaders::checkedVectorIndexing(constValues, 2), 30);
+  DSPHeaders::checkedVectorIndexing(values, 0u) = 11;
+  XCTAssertEqual(values[0], 11);
+
+  if constexpr (DSPHeaders::checkedVectorIndexingEnabled) {
+    bool threw = false;
+    try {
+      (void)DSPHeaders::checkedVectorIndexing(values, 3);
+    } catch (const std::out_of_range&) {
+      threw = true;
+    }
+    XCTAssertTrue(threw);
+  }
 }
 
 @end

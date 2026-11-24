@@ -20,51 +20,48 @@ constexpr long double operator ""_F(long double value) { return value; }
 /// Literal operator that generates `Float` values from the literal content.
 constexpr long double operator ""_F(unsigned long long value) { return value; }
 
+/// True if `checkedVectorIndexing` validates indices, which is enabled by defining `CHECKED_VECTOR_INDEXING=1`. Because
+/// this header is part of a Clang module, define it as a compiler flag for the whole build rather than with a `#define`
+/// before including the header.
+#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
+inline constexpr bool checkedVectorIndexingEnabled = true;
+#else
+inline constexpr bool checkedVectorIndexingEnabled = false;
+#endif
+
 /**
- Generic method that invokes checked or unchecked indexing on a container based on the DEBUG compile flag. When DEBUG
- is defined, invokes `at` which will validate the index prior to use, and as a result is slower than just blindly
- indexing via `operator []`.
+ Generic method that invokes checked or unchecked indexing on a container based on the `CHECKED_VECTOR_INDEXING`
+ compile flag. When checking is enabled it invokes `at`, which validates the index and throws `std::out_of_range` for an
+ invalid one, so the method is `noexcept` only when checking is disabled. Otherwise it indexes with `operator []`, which
+ is faster but does not validate.
+
+ @param container the container to index
+ @param index the index of the element to return
+ @returns reference to the element at `index`
  */
-template <RandomAccessContainer T>
-const typename T::value_type& checkedVectorIndexing(const T& container, size_t index) noexcept
-{
-#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
-  return container.at(index);
-#else
-  return container[index];
-#endif
-}
-
-template <RandomAccessContainer T>
-typename T::value_type& checkedVectorIndexing(T& container, size_t index) noexcept
-{
-#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
-  return container.at(index);
-#else
-  return container[index];
-#endif
-}
-
 template <RandomAccessContainer T, SizableType S>
-const typename T::value_type& checkedVectorIndexing(const T& container, S index) noexcept
+const typename T::value_type& checkedVectorIndexing(const T& container, S index)
+noexcept(!checkedVectorIndexingEnabled)
 {
   auto index_ = static_cast<size_t>(index);
-#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
-  return container.at(index_);
-#else
-  return container[index_];
-#endif
+  if constexpr (checkedVectorIndexingEnabled) return container.at(index_);
+  else return container[index_];
 }
 
+/**
+ Generic method that invokes checked or unchecked indexing on a container based on the `CHECKED_VECTOR_INDEXING`
+ compile flag. See the `const` version above.
+
+ @param container the container to index
+ @param index the index of the element to return
+ @returns updatable reference to the element at `index`
+ */
 template <RandomAccessContainer T, SizableType S>
-typename T::value_type& checkedVectorIndexing(T& container, S index) noexcept
+typename T::value_type& checkedVectorIndexing(T& container, S index) noexcept(!checkedVectorIndexingEnabled)
 {
   auto index_ = static_cast<size_t>(index);
-#if defined(CHECKED_VECTOR_INDEXING) && CHECKED_VECTOR_INDEXING == 1
-  return container.at(index_);
-#else
-  return container[index_];
-#endif
+  if constexpr (checkedVectorIndexingEnabled) return container.at(index_);
+  else return container[index_];
 }
 
 /**
