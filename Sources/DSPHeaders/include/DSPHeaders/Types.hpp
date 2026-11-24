@@ -4,16 +4,21 @@
 
 #include <array>
 #include <type_traits>
+#include <utility>
 
 #include "DSPHeaders/Concepts.hpp"
 
 namespace DSPHeaders {
 
 /**
- Convert an enum value into its underlying integral type.
+ Convert an enum value into its underlying integral type. This is C++23's `std::to_underlying`, kept under this name
+ for existing callers.
+
+ @param index the enum value to convert
+ @returns the value as the enum's underlying type
  */
 template <EnumeratedType T>
-constexpr auto valueOf(T index) noexcept { return static_cast<typename std::underlying_type<T>::type>(index); }
+constexpr auto valueOf(T index) noexcept { return std::to_underlying(index); }
 
 /// Literal operator that generates `Float` values from the literal content.
 constexpr long double operator ""_F(long double value) { return value; }

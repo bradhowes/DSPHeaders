@@ -29,6 +29,14 @@ using namespace DSPHeaders;
 - (void)testValueOf {
   enum Foo { one = 1, two = 2 };
   XCTAssertEqual(DSPHeaders::valueOf(Foo::one), 1);
+
+  // The result has the enum's underlying type, including for scoped enums, and works at compile time.
+  enum class Small : uint8_t { a = 7 };
+  enum class Address : AUParameterAddress { cutoff = 0x1'0000'0000 };
+  static_assert(std::is_same_v<decltype(DSPHeaders::valueOf(Small::a)), uint8_t>);
+  static_assert(std::is_same_v<decltype(DSPHeaders::valueOf(Address::cutoff)), AUParameterAddress>);
+  static_assert(DSPHeaders::valueOf(Small::a) == 7);
+  static_assert(DSPHeaders::valueOf(Address::cutoff) == 0x1'0000'0000);
 }
 
 - (void)testConstantOperators {
