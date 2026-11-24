@@ -1,7 +1,5 @@
 // Copyright © 2020 Brad Howes. All rights reserved.
 
-#import <Accelerate/../Frameworks/vecLib.framework/Headers/vForce.h>
-
 #import "DSPHeaders/ConstMath.hpp"
 #import "DSPHeaders/DSP.hpp"
 #import "DSPHeaders/LowPassFilter.hpp"
@@ -61,17 +59,18 @@ DSPHeaders::LowPassFilter::calculateParams(double frequency, double resonance, d
   lastNumChannels_ = numChannels;
 }
 
-/**
- Convert "bad" values (NaNs, very small, and very large values to 1.0. Only used below in the `magnitudes` calculations.
-
- - parameter x: value to check
- - returns: filtered value or 1.0
- */
-
 void
 DSPHeaders::LowPassFilter::magnitudes(AUValue const* frequencies, size_t count, double inverseNyquist, AUValue* magnitudes) const
 {
+  // Without coefficients there is no filtering, so the response is flat at 0 dB.
+  if (F_.size() < 5) [[unlikely]] {
+    std::fill_n(magnitudes, count, AUValue(0.0));
+    return;
+  }
+
   double scale = ConstMath::Constants<double>::PI * inverseNyquist;
+
+  // Convert "bad" values (NaNs, very small, and very large values) to 1.0 so that their log is 0 dB.
   auto filterBadValues = [](double x) { return (::fabs(x) > 1e-15_F && ::fabs(x) < 1e15_F && x != 0.0_F) ? x : 1.0_F; };
   auto squared = [](double x) { return x * x; };
 

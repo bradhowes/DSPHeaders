@@ -103,6 +103,56 @@ using namespace DSPHeaders;
   filter.calculateParams(8001.0, 0.6, nyquistPeriod, 1);
 }
 
+- (void)testUnconfiguredFilterPassesThrough {
+  LowPassFilter filter;
+
+  // Without coefficients the response is flat at 0 dB.
+  double nyquistPeriod = 1.0 / (44100.0 / 2);
+  const AUValue freqs[] = {100, 1000, 10000};
+  AUValue mags[] = {-1, -1, -1};
+  filter.magnitudes(freqs, 3, nyquistPeriod, mags);
+  XCTAssertEqual(mags[0], 0.0f);
+  XCTAssertEqual(mags[1], 0.0f);
+  XCTAssertEqual(mags[2], 0.0f);
+
+  // Without a vDSP setup the samples are copied unchanged.
+  AUValue inLeft[] = {1, -1, 0.5}, inRight[] = {0.25, 0, -0.25};
+  std::vector<AUValue*> inBufs{inLeft, inRight};
+  BusBuffers ins(inBufs);
+  AUValue outLeft[] = {9, 9, 9}, outRight[] = {9, 9, 9};
+  std::vector<AUValue*> outBufs{outLeft, outRight};
+  BusBuffers outs(outBufs);
+  filter.apply(ins, outs, 3);
+  for (int frame = 0; frame < 3; ++frame) {
+    XCTAssertEqual(outLeft[frame], inLeft[frame]);
+    XCTAssertEqual(outRight[frame], inRight[frame]);
+  }
+}
+
+- (void)testChannelCountMismatchPassesThrough {
+  // Configured for one channel but given two: vDSP must not be handed more channel buffers than it was set up for,
+  // or fewer.
+  LowPassFilter filter;
+  double nyquistPeriod = 1.0 / (44100.0 / 2);
+  filter.calculateParams(8000.0, 0.5, nyquistPeriod, 1);
+
+  AUValue inLeft[] = {1, -1, 1}, inRight[] = {-1, 0, 1};
+  std::vector<AUValue*> inBufs{inLeft, inRight};
+  BusBuffers ins(inBufs);
+  AUValue outLeft[] = {9, 9, 9}, outRight[] = {9, 9, 9};
+  std::vector<AUValue*> outBufs{outLeft, outRight};
+  BusBuffers outs(outBufs);
+  filter.apply(ins, outs, 3);
+  for (int frame = 0; frame < 3; ++frame) {
+    XCTAssertEqual(outLeft[frame], inLeft[frame]);
+    XCTAssertEqual(outRight[frame], inRight[frame]);
+  }
+
+  // In-place buffers are left alone.
+  filter.apply(ins, ins, 3);
+  XCTAssertEqual(inLeft[1], -1.0f);
+}
+
 - (void)testExclusiveSetupOwnership {
   XCTAssertFalse((std::is_copy_constructible_v<LowPassFilter>));
   XCTAssertFalse((std::is_copy_assignable_v<LowPassFilter>));

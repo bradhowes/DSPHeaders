@@ -3,7 +3,7 @@
 #pragma once
 
 #include <Accelerate/Accelerate.h>
-#include <cassert>
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -37,7 +37,8 @@ public:
   void calculateParams(double frequency, double resonance, double nyquistPeriod, size_t numChannels);
 
   /**
-   Calculate the frequency responses for the current filter configuration.
+   Calculate the frequency responses for the current filter configuration. Before `calculateParams` has configured the
+   filter, it does not filter, so every magnitude is 0 dB.
 
    @param frequencies array of frequency values to calculate on
    @param count the number of frequencies in the array
@@ -47,7 +48,9 @@ public:
   void magnitudes(AUValue const* frequencies, size_t count, double nyquistPeriod, AUValue* magnitudes) const;
 
   /**
-   Apply the filter to a collection of audio samples.
+   Apply the filter to a collection of audio samples. If the filter has not been configured by `calculateParams`, or
+   was configured for a different number of channels than `ins` or `outs` holds, the samples are passed through
+   unfiltered rather than handing Accelerate a missing setup or too few channel buffers.
 
    @param ins the array of samples to process
    @param outs the storage for the filtered results
@@ -55,13 +58,25 @@ public:
    */
   void apply(BusBuffers& ins, BusBuffers& outs, size_t frameCount) const
   {
-    assert(lastNumChannels_ == ins.size() && lastNumChannels_ == outs.size());
+    if (setup_ == nullptr || lastNumChannels_ != ins.size() || lastNumChannels_ != outs.size()) [[unlikely]] {
+      passThrough(ins, outs, frameCount);
+      return;
+    }
     float const* __nonnull* __nonnull input = const_cast<const AUValue**>(ins.data());
     float* __nonnull* __nonnull output = outs.data();
     vDSP_biquadm(setup_, input, one_, output, one_, vDSP_Length(frameCount));
   }
 
 private:
+  /// Copy each input channel to the matching output channel, skipping missing and shared (in-place) buffers.
+  static void passThrough(BusBuffers& ins, BusBuffers& outs, size_t frameCount) noexcept {
+    for (size_t channel = 0; channel < std::min(ins.size(), outs.size()); ++channel) {
+      const AUValue* in = ins[channel];
+      AUValue* out = outs[channel];
+      if (in != nullptr && out != nullptr && in != out) std::copy_n(in, frameCount, out);
+    }
+  }
+
   std::vector<double> F_;
   vDSP_biquadm_Setup setup_ = nullptr;
   vDSP_Stride one_{1};

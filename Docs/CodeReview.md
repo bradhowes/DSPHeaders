@@ -214,11 +214,13 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: `read` now clamps the delay to [0, `maxDelay()`], and treats NaN as 0. `std::clamp` would pass NaN through to the `int` conversion, so the clamp is written with comparisons that NaN fails. Clamping, rather than an `assert`, keeps release builds free of undefined behavior on the render thread, at the cost of two predictable comparisons per read. The new `maxDelay()` returns the largest delay whose samples are all in the buffer: `size() - 1` for linear interpolation and `size() - 2` for cubic. (The heading's `size() - 3` was the limit for a fractional cubic delay; a whole delay of `size() - 2` is also valid.) `readFromOffset` keeps its documented wrapping behavior. Delays inside the range give exactly the same results as before. Out-of-range delays now read the newest or oldest usable sample instead of extrapolating, wrapping, or indexing outside the weights table. `testReadClampsDelayToBuffer` covers negative, NaN, oversized, and infinite delays for both interpolators. Without the fix, the linear reads return 8.5 and 3.0 instead of 8, and the cubic interpolator's `assert` aborts the test process on an out-of-range table index. The full test plan passes with 145 tests.
 
-21. `LowPassFilter` can be used before it is configured.
+21. ~~`LowPassFilter` can be used before it is configured.~~ **Fixed 2026-11-24.**
 
     `magnitudes` indexes `F_[0..4]` and `apply` passes `setup_` to vDSP without checking that `calculateParams` has run. Both are out-of-bounds or null dereferences on a fresh instance. `LowPassFilter.mm` also includes `vForce.h` through a fragile `Accelerate/../Frameworks/...` path, uses no vForce routine, and has a detached doc comment for `filterBadValues`.
 
     Locations: `Sources/DSPHeaders/LowPassFilter.mm:3`, `Sources/DSPHeaders/LowPassFilter.mm:72`, `Sources/DSPHeaders/include/DSPHeaders/LowPassFilter.hpp:56`
+
+    Resolution: an unconfigured filter now behaves as no filter. `magnitudes` fills the results with 0 dB when there are no coefficients. `apply` copies each input channel to its output channel, skipping missing and in-place buffers, when there is no vDSP setup. `apply` also passes samples through when `ins` or `outs` has a different channel count than the filter was configured for. That replaces an `assert` that left release builds handing vDSP the wrong number of channel buffers. Configured use with matching channels is unchanged, and the existing magnitude and filtering tests pass with their original values. The unused `vForce.h` import is gone, and the detached `filterBadValues` doc comment is now a comment on the lambda. `testUnconfiguredFilterPassesThrough` and `testChannelCountMismatchPassesThrough` cover the new behavior. Both fail against the previous code. The full test plan passes with 147 tests.
 
 22. `BusBufferFacet::pullInput`'s size check can never fail.
 
