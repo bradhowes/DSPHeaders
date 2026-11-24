@@ -388,8 +388,10 @@ private:
     // This method may be called multiple times during one `processAndRender` call due to interleaved audio events
     // such as MIDI messages. We will generate in total `frameCount` + `processedFrameCount` samples, but maybe not in
     // one shot. As a result, we must adjust buffer pointers by the number of processed samples so far before we
-    // let the kernel render into our buffers.
+    // let the kernel render into our buffers. The input buffers must move with them so that the kernel reads the
+    // input samples for the same frames it is rendering.
     outputFacet.setOffset(processed);
+    if (inputFacet_.isLinked()) inputFacet_.setOffset(processed);
     if (isBypassed()) {
       // If we have input samples from an upstream node, either use the sample buffers directly or copy samples over
       // to the output buffer. Otherwise, we have already zero'd out the output buffer, so we are done.

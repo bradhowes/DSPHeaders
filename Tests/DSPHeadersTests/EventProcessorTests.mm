@@ -547,4 +547,66 @@ struct MockEffectWithMIDI : public EventProcessor<MockEffectWithMIDI>
   XCTAssertEqual(effect->midiEvents_, 1);
 }
 
+/// Kernel that derives each output sample from its input sample, so that misaligned input buffers are detectable.
+struct MockInputReadingEffect : public EventProcessor<MockInputReadingEffect>
+{
+  using super = EventProcessor<MockInputReadingEffect>;
+
+  MockInputReadingEffect() : super("mock") { registerParameter(param_); }
+
+  void doRendering(BusBuffers ins, BusBuffers outs, AUAudioFrameCount frameCount) {
+    for (size_t channel = 0; channel < outs.size(); ++channel) {
+      for (AUAudioFrameCount frame = 0; frame < frameCount; ++frame) {
+        outs[channel][frame] = ins[channel][frame] + 1000;
+      }
+    }
+  }
+
+  Parameters::Float param_{1, 0.0};
+};
+
+- (void)renderWithMidBlockEvent:(BOOL)inPlace {
+  MockInputReadingEffect effect;
+  AVAudioFormat* format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100.0 channels:2];
+  AUAudioFrameCount frames = 512;
+  effect.setRenderingFormat(1, format, frames);
+
+  AVAudioPCMBuffer* buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:format frameCapacity:frames];
+  AudioBufferList* outputData = [buffer mutableAudioBufferList];
+  if (inPlace) {
+    outputData->mBuffers[0].mData = nil;
+    outputData->mBuffers[1].mData = nil;
+  }
+
+  // An event at frame 100 splits the block into renders of 100 and 412 frames.
+  AUParameterEvent event{};
+  event.next = nullptr;
+  event.eventSampleTime = 100;
+  event.parameterAddress = 1;
+  event.value = 0.5;
+  AURenderEvent* eventList = reinterpret_cast<AURenderEvent*>(&event);
+  eventList->head.eventType = AURenderEventParameter;
+
+  AudioTimeStamp timestamp = AudioTimeStamp();
+  XCTAssertEqual(effect.processAndRender(&timestamp, frames, 0, outputData, eventList, mockPullInput), 0);
+
+  // `mockPullInput` writes the frame index as each input sample, so every output sample must be its index + 1000.
+  // Before the input buffers were offset with the output ones, the second render read the input from frame 0.
+  for (UInt32 channel = 0; channel < outputData->mNumberBuffers; ++channel) {
+    auto ptr = static_cast<AUValue*>(outputData->mBuffers[channel].mData);
+    XCTAssertEqual(ptr[0], 1000.0);
+    XCTAssertEqual(ptr[99], 1099.0);
+    XCTAssertEqual(ptr[100], 1100.0);
+    XCTAssertEqual(ptr[frames - 1], 1000.0 + frames - 1);
+  }
+}
+
+- (void)testInputAlignedWithOutputAfterMidBlockEvent {
+  [self renderWithMidBlockEvent:NO];
+}
+
+- (void)testInPlaceInputAlignedWithOutputAfterMidBlockEvent {
+  [self renderWithMidBlockEvent:YES];
+}
+
 @end
