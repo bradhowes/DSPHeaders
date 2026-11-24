@@ -235,13 +235,9 @@ constexpr ValueType log_check(ValueType x) noexcept {
 
 template<typename ValueType>
 constexpr IntegralAsDouble<ValueType> log_integral_check(ValueType x) noexcept {
-  return(std::is_integral_v<ValueType> ? \
-         x == ValueType(0) ? \
-         - std::numeric_limits<IntegralAsDouble<ValueType>>::infinity() :
-         x > ValueType(1) ? \
-         log_check( static_cast<IntegralAsDouble<ValueType>>(x) ) :
-         static_cast<IntegralAsDouble<ValueType>>(0) :
-         log_check( static_cast<IntegralAsDouble<ValueType>>(x) ) );
+  // Integers are converted to double, after which `log_check` handles every case, including 0 (-inf), 1 (0), and
+  // negative values (NaN), the same way it does for floating-point arguments.
+  return log_check(static_cast<IntegralAsDouble<ValueType>>(x));
 }
 
 } // namespace detail

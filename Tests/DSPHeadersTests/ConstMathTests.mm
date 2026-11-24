@@ -2,6 +2,7 @@
 
 #include <XCTest/XCTest.h>
 #include <cmath>
+#include <limits>
 
 #include "DSPHeaders/ConstMath.hpp"
 
@@ -112,6 +113,18 @@ using namespace DSPHeaders;
   XCTAssertEqualWithAccuracy(3.0, ConstMath::log10(1000L), epsilon);
   XCTAssertEqualWithAccuracy(std::log10(7.0), ConstMath::log10(7), epsilon);
   XCTAssertEqualWithAccuracy(0.0, ConstMath::log10(1), epsilon);
+}
+
+- (void)testLogOfIntegerDomainEdges {
+  // Integer arguments must match the floating-point results at the edges of the domain.
+  XCTAssertTrue(std::isnan(ConstMath::log(-5)));
+  XCTAssertTrue(std::isnan(ConstMath::log10(-5)));
+  XCTAssertTrue(std::isnan(ConstMath::log(-1)));
+  XCTAssertTrue(std::isnan(ConstMath::log(-5.0)));
+  XCTAssertEqual(ConstMath::log(0), -std::numeric_limits<double>::infinity());
+  XCTAssertEqual(ConstMath::log(0), ConstMath::log(0.0));
+  XCTAssertEqual(ConstMath::log(1), 0.0);
+  XCTAssertEqualWithAccuracy(std::log(2.0), ConstMath::log(2), epsilon);
 }
 
 - (void)testPow {

@@ -202,7 +202,7 @@ This pass revisits every library source after the fixes above and those in `Perf
 
     Resolution: `log10` now divides by `Constants<IntegralAsDouble<ValueType>>::ln10`, so integer arguments are divided by the `double` value of ln(10). Floating-point arguments are unchanged, because `IntegralAsDouble` is then the argument type. `testLog10OfIntegers` checks `log10(100)`, `log10(1000L)`, `log10(7)`, and `log10(1)`, and asserts that the integer result type is `double`. Three of its assertions fail without the fix. The full test plan passes with 143 tests.
 
-    A related defect, not fixed here: `detail::log_integral_check` returns 0 for negative integers, so `ConstMath::log(-5)` and `log10(-5)` return 0, while `log(-5.0)` correctly returns NaN. Its `x > 1 ? … : 0` branch should handle only `x == 1`, and pass negative values to `log_check`.
+    ~~A related defect: `detail::log_integral_check` returns 0 for negative integers, so `ConstMath::log(-5)` and `log10(-5)` return 0, while `log(-5.0)` correctly returns NaN.~~ **Fixed 2026-11-24.** Its integer branch special-cased 0 and values above 1 and returned 0 for everything else. `log_integral_check` now converts the argument to `double` and calls `log_check`, which already gives -inf for 0, 0 for 1, and NaN for negative values, so integers and floating-point values follow one path. Results for positive integers are unchanged. `testLogOfIntegerDomainEdges` checks negative, zero, one, and two against the floating-point results. Its three negative-value assertions fail without the fix. The full test plan passes with 144 tests.
 
 20. `DelayBuffer::read` has no defined behavior outside `[0, size() - 3]`.
 
